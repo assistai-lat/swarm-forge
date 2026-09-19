@@ -1,0 +1,32 @@
+{
+  "$schema": "https://swarm-forge.org/schemas/topology.v1.json",
+  "name": "Data-AI-Pipeline",
+  "version": "1.0.0",
+  "surfaces": {
+    "gateway": {
+      "path": "services/api-gateway",
+      "stack": "node-nestjs",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter api-gateway run build",
+      "workerRole": "worker_gateway"
+    },
+    "queues": {
+      "path": "services/worker-queues",
+      "stack": "node-bullmq",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter worker-queues run build",
+      "workerRole": "worker_queues"
+    },
+    "aiEngine": {
+      "path": "services/ai-engine",
+      "stack": "python-fastapi-langchain",
+      "language": "python",
+      "verifyCommand": "pytest tests/",
+      "workerRole": "worker_ai"
+    }
+  },
+  "requiredChallengers": [
+    "challenger_queue_resilience",
+    "challenger_llm_rate_limits"
+  ]
+}

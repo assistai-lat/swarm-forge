@@ -1,0 +1,32 @@
+{
+  "$schema": "https://swarm-forge.org/schemas/topology.v1.json",
+  "name": "Mobile-First-Triad",
+  "version": "1.0.0",
+  "surfaces": {
+    "api": {
+      "path": "backend-api",
+      "stack": "node-nestjs",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter backend-api run build",
+      "workerRole": "worker_api"
+    },
+    "web": {
+      "path": "landing-web",
+      "stack": "astro-tailwind",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter landing-web run build",
+      "workerRole": "worker_web"
+    },
+    "mobile": {
+      "path": "mobile-app",
+      "stack": "flutter",
+      "language": "dart",
+      "verifyCommand": "flutter analyze",
+      "workerRole": "worker_mobile"
+    }
+  },
+  "requiredChallengers": [
+    "challenger_backward_compat",
+    "challenger_push_notifications"
+  ]
+}

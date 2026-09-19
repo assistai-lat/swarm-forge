@@ -1,0 +1,46 @@
+{
+  "$schema": "https://swarm-forge.org/schemas/topology.v1.json",
+  "name": "Multi-Microservice-Cloud",
+  "version": "1.0.0",
+  "surfaces": {
+    "core": {
+      "path": "daido-cloud-api",
+      "stack": "nestjs-prisma",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter daido-cloud-api run build",
+      "workerRole": "worker_core"
+    },
+    "web": {
+      "path": "daido-cloud-web",
+      "stack": "nextjs-tailwind",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter daido-cloud-web run build",
+      "workerRole": "worker_web"
+    },
+    "multimedia": {
+      "path": "daido-multimedia-api",
+      "stack": "nestjs-s3",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter daido-multimedia-api run build",
+      "workerRole": "worker_multimedia"
+    },
+    "scraper": {
+      "path": "daido-scrapper-api",
+      "stack": "python-fastapi-alembic",
+      "language": "python",
+      "verifyCommand": "pytest && ruff check .",
+      "workerRole": "worker_scraper"
+    },
+    "mailer": {
+      "path": "mailer-backend",
+      "stack": "nestjs-bullmq",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter mailer-backend run build",
+      "workerRole": "worker_mailer"
+    }
+  },
+  "requiredChallengers": [
+    "challenger_cross_service_contracts",
+    "challenger_queue_resilience"
+  ]
+}

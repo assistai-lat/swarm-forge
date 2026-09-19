@@ -1,0 +1,32 @@
+{
+  "$schema": "https://swarm-forge.org/schemas/topology.v1.json",
+  "name": "Dual-Surface-App",
+  "version": "1.0.0",
+  "surfaces": {
+    "backend": {
+      "path": "backend",
+      "stack": "node-express-prisma",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter backend run build",
+      "workerRole": "worker_backend"
+    },
+    "frontend": {
+      "path": "frontend",
+      "stack": "nextjs-tailwind",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter frontend run build",
+      "workerRole": "worker_frontend"
+    }
+  },
+  "sharedContracts": [
+    {
+      "source": "backend",
+      "destinations": ["frontend"],
+      "contractPath": "backend/src/contracts"
+    }
+  ],
+  "requiredChallengers": [
+    "challenger_routing",
+    "challenger_realtime"
+  ]
+}

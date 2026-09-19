@@ -1,0 +1,40 @@
+{
+  "$schema": "https://swarm-forge.org/schemas/topology.v1.json",
+  "name": "Omnichannel-Quad-Ecosystem",
+  "version": "1.0.0",
+  "surfaces": {
+    "api": {
+      "path": "pasajeya-api",
+      "stack": "nestjs-prisma",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter pasajeya-api run build",
+      "workerRole": "worker_api"
+    },
+    "web": {
+      "path": "pasajeya-web",
+      "stack": "nextjs-tailwind",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter pasajeya-web run build",
+      "workerRole": "worker_web"
+    },
+    "backoffice": {
+      "path": "pasajeya-bo",
+      "stack": "nextjs-radix-erp",
+      "language": "typescript",
+      "verifyCommand": "pnpm --filter pasajeya-bo run build",
+      "workerRole": "worker_backoffice"
+    },
+    "mobile": {
+      "path": "pasajeya-mob",
+      "stack": "flutter-bloc",
+      "language": "dart",
+      "verifyCommand": "flutter analyze && flutter test",
+      "workerRole": "worker_mobile"
+    }
+  },
+  "requiredChallengers": [
+    "challenger_backward_compat",
+    "challenger_mobile_offline",
+    "challenger_rbac_permissions"
+  ]
+}
