@@ -1,5 +1,12 @@
 # Mejoras recomendadas a swarm-forge
 
+> **Estado (2026-09-21): ✅ las tres mejoras están aplicadas.**
+> 1. `providers/opencode/` implementado a partir de funycheck, con modelos ajustados a la 6ª Ley y el comodín de los Write-Locks corregido (`"*": deny` en vez de `"**/*": deny`).
+> 2. `ROSETTA_STONE.md` actualizada a septiembre de 2026 (incluida la columna de Codex), con nota de vigencia.
+> 3. `topologies/06-single-repo-monolith/` creada; `topology.json` ahora admite `paths` y `exclude`.
+>
+> Además: `providers/codex/` implementado, los Modos A y B redefinidos como un solo CLI vs. varios CLIs, y la 6ª Ley pasó a ser universal.
+
 > Detectadas el 2026-09-21 al adoptar Swarm-Forge en un proyecto real con OpenCode
 > (`funycheck`: monolito Next.js 14 + MongoDB/Mongoose, clonado en `C:\Users\tukas\www\funycheck`).
 > La adopción ya está hecha y funcionando; esto es lo que el proceso de adopción reveló
