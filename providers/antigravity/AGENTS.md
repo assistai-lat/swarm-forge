@@ -8,7 +8,7 @@ Este documento rige la topología de subagentes en entornos Antigravity. AGY y s
 
 | # | Rol | Identificador | Modelo Gemini | Nivel de Thinking | Herramientas | Responsabilidad Principal |
 |---|:---|:---|:---|:---|:---|:---|
-| 1 | **Sentinel** | `sentinel` | **Gemini Flash-Lite** | Mínimo | Mensajería (`send_message`) | Mantiene el contexto del usuario ultra-ligero (<10k). Convoca al Victory Auditor. |
+| 1 | **Sentinel** | `sentinel` | **Gemini Flash-Lite** | Mínimo | Mensajería (`send_message`) | Mantiene el contexto del usuario ultra-ligero (<10k). Procesa capturas de pantalla del usuario con visión nativa multimodal. Convoca al Victory Auditor. |
 | 2 | **Orquestador** | `orchestrator` | **Gemini Pro** | Alto | Coordinación (`subagents`, `manage_task`) | Descompone tareas, emite `DISPATCH.md` con Write-Locks y evalúa compuertas. |
 | 3 | **Arquitecto / Plan** | `architect` | **Gemini Pro** | Alto | Solo Lectura | Diseña la arquitectura global y contratos de interfaces sin tocar código. |
 | 4 | **Explorador** | `explorer` | **Gemini Flash-Lite** | Mínimo / Cero | Solo Lectura | Mapeo rápido de repositorios, lectura masiva de archivos a costo casi nulo. |

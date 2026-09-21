@@ -4,16 +4,16 @@ Este manifiesto rige la coordinación del equipo multi-agente en este repositori
 
 ## 1. Roster de Agentes y Modelos
 
-| Rol | Tier Abstracto | Modelo Gemini (AGY) | Modelo Claude | Modelo Codex | Ámbito / Write-Lock |
-|---|---|---|---|---|---|
-| **`sentinel`** | Tier 3 | Gemini Flash-Lite | Claude 3.5 Haiku | GPT-4o-mini | Interfaz de usuario & Liveness |
-| **`orchestrator`** | Tier 1 | Gemini Pro (Alto) | Claude 3.7 Sonnet (16k) | o3-mini (High) | Coordinación & Gates |
-| **`worker_backend`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | `backend/**` |
-| **`worker_frontend`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | `frontend/**` |
-| **`challenger_routing`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Tests de navegación & URLs |
-| **`challenger_realtime`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Tests de Sockets & Concurrencia |
-| **`forensic_auditor`** | Tier 1 | Gemini Pro (Alto) | Claude 3.7 Sonnet (16k) | o3-mini (High) | Git diff anti-mocks |
-| **`victory_auditor`** | Tier 1 | Gemini Pro (Alto) | Claude 3.7 Sonnet (16k) | o3-mini (High) | Verificación final en frío |
+| Rol | Tier Abstracto | Modelo Gemini (AGY) | Modelo Claude | Modelo Codex | Modelo OpenCode | Ámbito / Write-Lock |
+|---|---|---|---|---|---|---|
+| **`sentinel`** | Tier 3 (VLM) | Gemini Flash-Lite | Claude 3.5 Haiku | GPT-4o-mini | Qwen 2.5 VL 7B *(Visión Obligatoria)* | Interfaz de usuario & Liveness |
+| **`orchestrator`** | Tier 1 | Gemini Pro (Alto) | Claude 3.7 Sonnet (16k) | o3-mini (High) | DeepSeek-R1 | Coordinación & Gates |
+| **`worker_backend`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Qwen 2.5 Coder 32B | `backend/**` |
+| **`worker_frontend`** | Tier 2 (VLM) | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Qwen 2.5 VL 7B / Coder | `frontend/**` |
+| **`challenger_routing`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Qwen 2.5 Coder 32B | Tests de navegación & URLs |
+| **`challenger_realtime`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Qwen 2.5 Coder 32B | Tests de Sockets & Concurrencia |
+| **`forensic_auditor`** | Tier 1 | Gemini Pro (Alto) | Claude 3.7 Sonnet (16k) | o3-mini (High) | DeepSeek-R1 | Git diff anti-mocks |
+| **`victory_auditor`** | Tier 1 | Gemini Pro (Alto) | Claude 3.7 Sonnet (16k) | o3-mini (High) | DeepSeek-R1 | Verificación final en frío |
 
 ## 2. Protocolo de Ejecución
 1. **Fase 0:** Exploración concurrente backend/frontend y redacción de `ANALYSIS_REPORT.md`.
