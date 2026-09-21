@@ -1,28 +1,82 @@
-# 🏗️ OpenCode Interpreter — Adaptador Swarm-Forge
+# 🔓 OpenCode — Adaptador Swarm-Forge (Modo A)
 
-> **Estado:** Cascarón preparado para desafío y generación autónoma.
+> **Estado:** ✅ Implementado. Plantillas extraídas de una adopción real en producción (funycheck: Next.js 14 + MongoDB) y validadas con `opencode agent list` (OpenCode 1.18).
 
-Este directorio está reservado para la implementación nativa del estándar Swarm-Forge adaptado a **OpenCode Interpreter** y entornos de ejecución basados en **modelos de código abierto (Open Weights)** como DeepSeek-R1, Qwen 2.5 Coder y Llama 3.
+OpenCode ejecuta el enjambre completo con su mecánica nativa: agentes en Markdown, subagentes invocados con la herramienta `task` (o con `@mención`) y Write-Locks **reales** mediante `permission.edit`. No necesitas herdr, scripts ni un runner con `--profile`.
+
+Además, OpenCode puede asignar a cada agente un modelo de **otra familia** (GLM, Kimi, Grok, DeepSeek, GPT...). Por eso es el único adaptador de Modo A que cumple la 6ª Ley (Diversidad Adversarial) sin salir del CLI.
 
 ---
 
-## Cómo Ejecutar el Desafío
+## Instalación en tu proyecto
 
-Cuando inicies una sesión con **OpenCode** en este repositorio, indícale la siguiente instrucción:
+```bash
+# Desde la raíz de tu proyecto
+mkdir -p .opencode/agents
+cp <ruta-a-swarm-forge>/providers/opencode/templates/opencode.json   ./opencode.json
+cp <ruta-a-swarm-forge>/providers/opencode/templates/AGENTS.protocol.md .opencode/AGENTS.md
+cp <ruta-a-swarm-forge>/providers/opencode/templates/agents/*.md     .opencode/agents/
+echo ".opencode/swarm/" >> .gitignore
 
-```text
-Lee el archivo providers/opencode/BOOTSTRAP_PROMPT.md y ejecuta tu misión para implementar el adaptador nativo de Swarm-Forge para OpenCode Interpreter.
+opencode agent list   # deben aparecer sentinel, orchestrator, worker_*, jueces y devops
 ```
 
-OpenCode leerá la especificación universal en `/spec`, estudiará el adaptador de referencia dorada de Antigravity en `/providers/antigravity`, y generará los archivos nativos correspondientes (`opencode.json`, configuración de endpoints Ollama/vLLM y perfiles de sistema para modelos abiertos).
+Después, adapta tres cosas:
+1. **Write-Locks:** los `permission.edit` de `worker_backend.md`, `worker_frontend.md` y `devops.md` (y la sección equivalente de `.opencode/AGENTS.md`) con los paths de tu `topology.json`.
+2. **Comandos de verificación:** los `bash` permitidos y los comandos de `.opencode/AGENTS.md`.
+3. **Modelos:** cámbialos si tu gateway ofrece otros, respetando las dos reglas de abajo.
 
----
+## Estructura
 
-## ⚠️ Requisito Crítico: Modelos VLM (Visión Multimodal)
+| Archivo en tu proyecto | Plantilla | Para qué |
+|---|---|---|
+| `opencode.json` | [`templates/opencode.json`](./templates/opencode.json) | Modelo por defecto, `small_model`, modelos de los agentes nativos y carga del protocolo vía `instructions`. |
+| `.opencode/AGENTS.md` | [`templates/AGENTS.protocol.md`](./templates/AGENTS.protocol.md) | Protocolo de 5 fases, equipo, Write-Locks y comandos de verificación. |
+| `.opencode/agents/*.md` | [`templates/agents/`](./templates/agents/) | Los roles del enjambre, cada uno con su modelo y sus permisos. |
 
-A diferencia de las nubes comerciales que integran visión por defecto en casi todos sus modelos, en entornos de código abierto los modelos más conocidos de programación y razonamiento (DeepSeek-R1, Qwen 2.5 Coder) son **100% texto**.
+> **¿Por qué `.opencode/AGENTS.md` y no el `AGENTS.md` de la raíz?** OpenCode también lee el de la raíz, pero esa ruta la usan AGY y Codex. Guardar el protocolo bajo `.opencode/` permite que varios CLIs convivan en el mismo repo sin pisarse.
 
-Bajo el estándar Swarm-Forge:
-- **El Sentinel (interfaz con el usuario):** **DEBE ser multimodal**. Debe configurarse con un modelo Vision-Language (VLM) como **Qwen 2.5 VL (7B / 72B)** o **Llama 3.2 11B Vision** para poder procesar capturas de pantalla, errores gráficos de interfaz y diagramas enviados por el usuario.
-- **Workers de Frontend / UI:** Deben disponer de capacidades VLM para contrastar capturas de bugs y maquetas visuales.
-- **Backend, DB y Auditorías Lógicas:** Deben aprovechar la potencia de texto puro de **DeepSeek-R1** y **Qwen 2.5 Coder 32B**.
+## El equipo
+
+| Agente | `mode` | Modelo | Permisos de edición |
+|---|---|---|---|
+| `sentinel` | `all` (primario y subagente) | glm-5.3 (visión) | Ninguno |
+| `orchestrator` | `subagent` | glm-5.3 | Solo `.opencode/swarm/**` |
+| `explore` (nativo) | `subagent` | glm-5.3-flash | Ninguno |
+| `worker_backend` | `subagent` | kimi-k2.7-code | Su Write-Lock |
+| `worker_frontend` | `subagent` | glm-5.3 (visión) | Su Write-Lock |
+| `code-reviewer` | `subagent` | grok-4.6 | Ninguno |
+| `security-auditor` | `subagent` | grok-4.6 | Ninguno (sin shell) |
+| `challenger` | `subagent` | deepseek-v4-pro | Solo tests y `.opencode/swarm/**` |
+| `forensic-auditor` | `subagent` | deepseek-v4-pro | Ninguno |
+| `victory-auditor` | `subagent` | grok-4.6 | Ninguno |
+| `devops` | `subagent` | deepseek-v4-flash | Archivos de infraestructura |
+
+Probados en funycheck: `sentinel`, `orchestrator`, `worker_*`, `code-reviewer`, `security-auditor` y `devops`. Los modelos de `challenger`, `forensic-auditor` y `victory-auditor` cambiaron respecto de funycheck para cumplir la 6ª Ley (ver abajo).
+
+## Las dos reglas al elegir modelos
+
+1. **Visión obligatoria** en `sentinel` y `worker_frontend` (Imperativo Multimodal). DeepSeek, Kimi y Grok de este catálogo son solo texto; glm-5.3 tiene visión según lo reportado en funycheck.
+2. **Diversidad Adversarial (6ª Ley):** los jueces (`code-reviewer`, `security-auditor`, `challenger`, `forensic-auditor`, `victory-auditor`) no deben usar la familia de ningún worker. Con los workers en Kimi (moonshot) y GLM (zhipu), los jueces van en Grok (xai) y DeepSeek.
+
+## ⚠️ Cómo escribir un Write-Lock en OpenCode
+
+Según la [documentación de permisos](https://opencode.ai/docs/permissions/), **gana la última regla que coincide**, y en los patrones `*` coincide con **cualquier carácter, incluida la `/`**. De ahí salen tres reglas:
+
+```yaml
+permission:
+  edit:
+    "*": deny              # 1. Primero, negar TODO con "*"
+    "src/app/**": allow    # 2. Después, permitir la frontera
+    "src/app/api/**": deny # 3. Al final, volver a negar las exclusiones
+```
+
+- **No uses `"**/*": deny`** como negación general: ese patrón exige que la ruta contenga una `/`, así que los archivos de la raíz (`package.json`, `Dockerfile`, `next.config.mjs`) **quedarían sin bloquear**.
+- El orden importa: una exclusión escrita antes del `allow` no tiene efecto.
+- Traducción directa desde `topology.json`: cada glob de `paths` es un `allow` y cada glob de `exclude` es un `deny` posterior.
+
+## Operación
+
+- Pide el enjambre en lenguaje natural ("usa el enjambre para...") o cámbiate al agente `sentinel`.
+- El Sentinel delega en el `orchestrator`, este escribe `DISPATCH.md` y los workers se invocan como subagentes.
+- Para el `victory-auditor`, pásale solo los criterios de aceptación y las rutas: así mantiene el contexto frío.

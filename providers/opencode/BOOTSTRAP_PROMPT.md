@@ -1,5 +1,7 @@
 # Misión para OpenCode: Implementación del Adaptador Swarm-Forge
 
+> ✅ **Misión cumplida.** El adaptador ya está implementado en [`templates/`](./templates/); ver el [README](./README.md). Este prompt se conserva como registro histórico del desafío original.
+
 Hola agente de OpenCode. Has sido convocado para implementar la suite nativa de **Swarm-Forge** para el entorno **OpenCode Interpreter / Modelos Open Weights**.
 
 ## Contexto de la Misión

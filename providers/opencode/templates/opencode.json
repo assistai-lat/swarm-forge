@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/glm-5.3",
+  "small_model": "opencode-go/glm-5.3-flash",
+  "instructions": [".opencode/AGENTS.md"],
+  "agent": {
+    "build": { "model": "opencode-go/glm-5.3" },
+    "plan": { "model": "opencode-go/glm-5.3" },
+    "general": { "model": "opencode-go/kimi-k2.7-code" },
+    "explore": { "model": "opencode-go/glm-5.3-flash" }
+  }
+}
