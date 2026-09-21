@@ -74,6 +74,29 @@ Cada proyecto que adopta Swarm-Forge define en su raíz un archivo `topology.jso
 }
 ```
 
+### Superficies que comparten repositorio (`paths` + `exclude`)
+
+Cuando dos superficies viven **dentro del mismo repositorio** (p. ej. un monolito Next.js donde la API vive en `src/app/api/**` y la UI en el resto de `src/app/**`), una sola `path` no alcanza. En ese caso la superficie declara su frontera con globs:
+
+```json
+"frontend": {
+  "paths": ["src/app/**", "src/components/**", "public/**"],
+  "exclude": ["src/app/api/**"],
+  "stack": "nextjs-app-router-tailwind",
+  "language": "typescript",
+  "verifyCommand": "pnpm lint && npx tsc --noEmit",
+  "workerRole": "worker_frontend"
+}
+```
+
+| Campo | Significado |
+|---|---|
+| `path` | Forma corta: equivale a `paths: ["<path>/**"]`. Sigue siendo válida. |
+| `paths` | Globs que el worker **puede** escribir. |
+| `exclude` | Globs que el worker **no puede** escribir aunque coincidan con `paths`. Siempre ganan sobre `paths`. |
+
+**Regla de disjunción:** una vez aplicados los `exclude`, ningún archivo puede quedar dentro de la frontera de dos workers. Los archivos que no pertenecen a ninguna superficie (p. ej. `package.json`) solo se tocan si el orchestrator los asigna explícitamente en el `DISPATCH.md` (normalmente a `devops`).
+
 ---
 
 ## 3. Principio de Despacho Topológico (*Topology-Aware Dispatch*)
@@ -89,7 +112,7 @@ Cuando el `Orchestrator` recibe un requerimiento:
 
 ## 4. El Catálogo de Topologías de Referencia
 
-Swarm-Forge incluye 5 plantillas pre-construidas en el directorio `topologies/`:
+Swarm-Forge incluye 6 plantillas pre-construidas en el directorio `topologies/`:
 
 | Plantilla | Estructura | Repositorios Típicos | Caso de Uso |
 |---|---|---|---|
@@ -98,3 +121,4 @@ Swarm-Forge incluye 5 plantillas pre-construidas en el directorio `topologies/`:
 | **`03-omnichannel-quad`** | 4 Superficies | `api`, `web-portal`, `backoffice-erp`, `mobile-app` | Marketplaces, venta de pasajes o ERP con apps (estilo PasajeYa / Kasah). |
 | **`04-mobile-first-triad`** | 3 Superficies | `api`, `landing-web`, `mobile-app` | Apps B2C centradas en dispositivos móviles. |
 | **`05-data-ai-pipeline`** | 3 Superficies | `api-gateway`, `task-workers`, `ai-service` (LLM/Python) | Procesamiento masivo de datos, colas y pipelines de IA. |
+| **`06-single-repo-monolith`** | 2 Superficies en 1 repo | `src/app/api/**` + resto de `src/` (con `paths` / `exclude`) | Monolitos Next.js App Router (estilo funycheck). |

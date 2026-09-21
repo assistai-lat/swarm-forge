@@ -78,7 +78,7 @@ function createHome(agent, args, opts) {
 // Un pane recién creado puede tardar en mostrar su prompt de shell.
 function startAgent(agent, paneId, opts) {
   const args = ["agent", "start", agent.herdrName, "--kind", agent.herdrKind, "--pane", paneId,
-    "--timeout", "60000", "--", "--model", agent.model];
+    "--timeout", "60000", "--", "--model", agent.model, ...(agent.extraArgs ?? [])];
   for (let attempt = 1; ; attempt++) {
     try {
       return herdr(args, opts);
@@ -95,7 +95,8 @@ function briefFor(agent, roster) {
     `Tu modelo: ${agent.harness}/${agent.model}. El enjambre mezcla modelos de varios proveedores y no compartís contexto; coordínate solo a través de los artefactos (DISPATCH.md, handoff.md, GATE_STATUS.md).`,
   ];
   if (agent.writeLock) {
-    lines.push(`Write-Lock EXCLUSIVO: ${agent.writeLock.join(", ")}. Cualquier escritura fuera de estas rutas anula tu entrega.`);
+    const excluded = agent.writeLockExclude?.length ? ` EXCEPTO ${agent.writeLockExclude.join(", ")}` : "";
+    lines.push(`Write-Lock EXCLUSIVO: ${agent.writeLock.join(", ")}${excluded}. Cualquier escritura fuera de estas rutas anula tu entrega.`);
     lines.push(`Antes de entregar ejecuta: ${agent.verifyCommand} (código de salida 0).`);
   }
   if (agent.kind === "judge") {

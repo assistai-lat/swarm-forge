@@ -4,13 +4,15 @@ Este manifiesto rige la coordinación del equipo multi-agente para productos cen
 
 ## 1. Roster de Agentes y Modelos
 
-| Rol | Tier | Modelo Gemini (AGY) | Modelo Claude | Modelo Codex | Modelo OpenCode | Ámbito / Write-Lock |
-|---|---|---|---|---|---|---|
-| **`sentinel`** | Tier 3 (VLM) | Gemini Flash-Lite | Claude 3.5 Haiku | GPT-4o-mini | Qwen 2.5 VL 7B *(Visión Obligatoria)* | Interfaz de usuario & Liveness |
-| **`orchestrator`** | Tier 1 | Gemini Pro (Alto) | Claude 3.7 Sonnet (16k) | o3-mini (High) | DeepSeek-R1 | Coordinación & Gates |
-| **`worker_api`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Qwen 2.5 Coder 32B | `api/**` |
-| **`worker_web`** | Tier 3 | Gemini Flash-Lite | Claude 3.5 Haiku | GPT-4o-mini | Llama 3.1 8B Instruct | `web-landing/**` |
-| **`worker_mobile`** | Tier 2 (VLM) | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Qwen 2.5 VL 7B *(Layout / UI)* | `mobile-app/**` |
-| **`challenger_backward_compat`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Qwen 2.5 Coder 32B | Clientes móviles v1 vs v2 |
-| **`challenger_push`** | Tier 2 | Gemini Flash (Medio) | Claude 3.7 Sonnet | GPT-4o | Qwen 2.5 Coder 32B | Deserialización Push & FCM |
-| **`victory_auditor`** | Tier 1 | Gemini Pro (Alto) | Claude 3.7 Sonnet (16k) | o3-mini (High) | DeepSeek-R1 | Build tsc y flutter analyze |
+Los modelos concretos salen de la columna de tu CLI en [`ROSETTA_STONE.md`](../../ROSETTA_STONE.md) según el Tier de cada rol (Modo A), o de tu `roster.json` (Modo B). Los jueces deben usar una familia de modelos distinta a la de los workers cuando tu CLI lo permita (6ª Ley).
+
+| Rol | Tier | Visión | Ámbito / Write-Lock |
+|---|---|---|---|
+| **`sentinel`** | Tier 3 | **Obligatoria** | Interfaz de usuario & Liveness |
+| **`orchestrator`** | Tier 1 | — | Coordinación & Gates |
+| **`worker_api`** | Tier 2 | — | `api/**` |
+| **`worker_web`** | Tier 3 | — | `web-landing/**` |
+| **`worker_mobile`** | Tier 2 | **Obligatoria** | `mobile-app/**` |
+| **`challenger_backward_compat`** | Tier 2 | — | Clientes móviles v1 vs v2 |
+| **`challenger_push`** | Tier 2 | — | Deserialización Push & FCM |
+| **`victory_auditor`** | Tier 1 | — | Build tsc y flutter analyze |

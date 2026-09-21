@@ -54,6 +54,12 @@ function herdrName(roleId) {
   return name.slice(0, 32);
 }
 
+// `path` es la forma corta de `paths: ["<path>/**"]` (ver spec/TOPOLOGIES.md).
+function surfaceWriteLock(surface) {
+  const paths = surface.paths ?? (surface.path ? [`${surface.path}/**`] : []);
+  return { writeLock: paths, writeLockExclude: surface.exclude ?? [] };
+}
+
 function isUiSurface(surface, hints) {
   const haystack = `${surface.workerRole} ${surface.stack ?? ""}`.toLowerCase();
   return hints.some((h) => haystack.includes(h));
@@ -73,7 +79,7 @@ function expandRoles(topology, roleCatalog) {
       id: surface.workerRole ?? `worker_${surfaceKey}`,
       template: isUiSurface(surface, roleCatalog.uiStackHints) ? "worker_ui" : "worker",
       surface: surfaceKey,
-      writeLock: [`${surface.path}/**`],
+      ...surfaceWriteLock(surface),
       verifyCommand: surface.verifyCommand,
     });
   }
@@ -177,10 +183,16 @@ function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile }) 
       harness: model.harness,
       herdrKind: modelCatalog.harnesses[model.harness].herdrKind,
       model: model.model,
+      ...(model.extraArgs && { extraArgs: model.extraArgs }),
       modelId: model.id,
       family: model.family,
       score: Math.round(score * 10) / 10,
-      ...(slot.surface && { surface: slot.surface, writeLock: slot.writeLock, verifyCommand: slot.verifyCommand }),
+      ...(slot.surface && {
+        surface: slot.surface,
+        writeLock: slot.writeLock,
+        ...(slot.writeLockExclude.length && { writeLockExclude: slot.writeLockExclude }),
+        verifyCommand: slot.verifyCommand,
+      }),
     });
   }
 
@@ -192,12 +204,19 @@ function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile }) 
   return { agents, warnings };
 }
 
+function formatWriteLock(agent) {
+  if (!agent.writeLock) return "—";
+  const allowed = agent.writeLock.map((p) => `\`${p}\``).join(", ");
+  const excluded = (agent.writeLockExclude ?? []).map((p) => `\`${p}\``).join(", ");
+  return excluded ? `${allowed} (excepto ${excluded})` : allowed;
+}
+
 function toMarkdown(roster) {
   const lines = [
     `| Rol | Fase | Harness | Modelo | Familia | Write-Lock |`,
     `|---|---|---|---|---|---|`,
     ...roster.agents.map((a) =>
-      `| \`${a.role}\` | ${a.phase} | ${a.harness} | \`${a.model}\` | ${a.family} | ${a.writeLock ? a.writeLock.map((p) => `\`${p}\``).join(", ") : "—"} |`),
+      `| \`${a.role}\` | ${a.phase} | ${a.harness} | \`${a.model}\` | ${a.family} | ${formatWriteLock(a)} |`),
   ];
   if (roster.warnings.length) lines.push("", "Advertencias:", ...roster.warnings.map((w) => `- ${w}`));
   return lines.join("\n");

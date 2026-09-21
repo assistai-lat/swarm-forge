@@ -1,0 +1,54 @@
+{
+  "$schema": "https://swarm-forge.org/schemas/topology.v1.json",
+  "name": "Single-Repo-Monolith",
+  "version": "1.0.0",
+  "surfaces": {
+    "backend": {
+      "paths": [
+        "src/app/api/**",
+        "src/models/**",
+        "src/lib/**",
+        "src/types/**",
+        "src/middleware.ts",
+        "scripts/**"
+      ],
+      "stack": "nextjs-app-router-route-handlers",
+      "language": "typescript",
+      "verifyCommand": "pnpm lint && npx tsc --noEmit",
+      "workerRole": "worker_backend"
+    },
+    "frontend": {
+      "paths": [
+        "src/app/**",
+        "src/components/**",
+        "src/contexts/**",
+        "src/hooks/**",
+        "src/styles/**",
+        "src/utils/**",
+        "public/**",
+        "tailwind.config.*",
+        "postcss.config.*"
+      ],
+      "exclude": [
+        "src/app/api/**"
+      ],
+      "stack": "nextjs-app-router-tailwind",
+      "language": "typescript",
+      "verifyCommand": "pnpm lint && npx tsc --noEmit",
+      "workerRole": "worker_frontend"
+    }
+  },
+  "sharedContracts": [
+    {
+      "source": "backend",
+      "destinations": ["frontend"],
+      "contractPath": "src/types"
+    }
+  ],
+  "requiredChallengers": [
+    "challenger_routing",
+    "challenger_auth_flows",
+    "challenger_double_submit",
+    "challenger_hostile_uploads"
+  ]
+}
