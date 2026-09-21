@@ -20,6 +20,22 @@ En la era del desarrollo asistido por IA, los agentes autónomos suelen cometer 
 
 ---
 
+## 🧭 Dos Modos de Enjambre
+
+Swarm-Forge ejecuta **el mismo protocolo** (5 fases, 12 roles, Write-Locks, Gate M0) de dos maneras. Elige una antes de adoptar:
+
+| | 🏠 **Modo A — Mono-Proveedor** | 🧬 **Modo B — Multi-Proveedor** |
+|---|---|---|
+| **Modelos** | Todos de un solo proveedor | Cada rol con el mejor modelo de cualquier proveedor |
+| **Lanza los agentes** | Subagentes nativos del harness (`Task`, `invoke_subagent`...) | [herdr](https://github.com/ogulcancelik/herdr): un CLI real por pane |
+| **Asignación de modelos** | [`ROSETTA_STONE.md`](./ROSETTA_STONE.md) | [`catalog/`](./catalog/) + [`tools/recommend-roster.mjs`](./tools/recommend-roster.mjs) → `roster.json` |
+| **Adaptador** | `providers/antigravity`, `claude-code`, `codex`, `opencode` | `providers/herdr` |
+| **Ideal para** | Una sola suscripción, setup simple | Varios proveedores, jueces independientes, optimizar costo por rol |
+
+👉 Guía completa para decidir: [`SWARM_MODES.md`](./SWARM_MODES.md).
+
+---
+
 ## 🏛️ Arquitectura del Repositorio
 
 El repositorio está organizado en tres capas desacopladas:
@@ -31,9 +47,14 @@ swarm-forge/
 │   ├── ROLES.md        # Definición de los 12 roles del enjambre
 │   ├── TOPOLOGIES.md   # Principios de modelado de superficies y repositorios
 │   ├── ARTIFACTS.md    # Esquema de DISPATCH.md, BRIEFING.md, handoff.md, etc.
-│   └── TOPOLOGY_DRIFT.md # Algoritmo de vigilancia y evolución continua
+│   ├── TOPOLOGY_DRIFT.md # Algoritmo de vigilancia y evolución continua
+│   └── MIXED_ROSTER.md # [Modo B] Rosters multi-proveedor y Ley de Diversidad Adversarial
 │
-├── ROSETTA_STONE.md    # 🗿 Mapeo universal de modelos, thinking y herramientas (AGY, Claude, Codex, OpenCode)
+├── SWARM_MODES.md      # 🧭 Modo A (Mono-Proveedor) vs. Modo B (Multi-Proveedor): cuál elegir
+├── ROSETTA_STONE.md    # 🗿 [Modo A] Mapeo de modelos, thinking y herramientas por proveedor
+│
+├── catalog/            # 🧬 [Modo B] Capacidades de modelos y requisitos por rol
+├── tools/              # ⚙️ [Modo B] recommend-roster.mjs: recomienda un roster mixto para tu topología
 │
 ├── topologies/         # 🎯 STARTER KITS DE TOPOLOGÍAS (Listos para copiar a cualquier proyecto)
 │   ├── 01-dual-surface/        # Chronus style: Backend API + Web SPA
@@ -42,11 +63,14 @@ swarm-forge/
 │   ├── 04-mobile-first-triad/  # Mobile First: API + Landing Web + App Móvil
 │   └── 05-data-ai-pipeline/    # Data Mesh: API + Colas de Workers + LLM / Scraper
 │
-└── providers/          # 🔌 ADAPTADORES POR PROVEEDOR DE IA
+└── providers/          # 🔌 ADAPTADORES
+    │   ── Modo A: Mono-Proveedor ──
     ├── antigravity/    # 🏆 REFERENCIA DE ORO: Implementación completa para Antigravity (AGY)
     ├── claude-code/    # 🏗️ Cascarón + Prompt de desafío para Claude Code
     ├── codex/          # 🏗️ Cascarón + Prompt de desafío para OpenAI Codex / Operator
-    └── opencode/       # 🏗️ Cascarón + Prompt de desafío para OpenCode (Modelos abiertos)
+    ├── opencode/       # 🏗️ Cascarón + Prompt de desafío para OpenCode (Modelos abiertos)
+    │   ── Modo B: Multi-Proveedor ──
+    └── herdr/          # 🐑 Enjambres mixtos: cada rol en su propio CLI y modelo, orquestados con herdr
 ```
 
 ---
@@ -102,9 +126,9 @@ Cuando un agente de IA adopta **Swarm-Forge** en un repositorio nuevo:
 
 ---
 
-## 🗿 Mapeo Multi-Proveedor (Rosetta Stone)
+## 🗿 Modo A: Mapeo por Proveedor (Rosetta Stone)
 
-Swarm-Forge no favorece a un proveedor cerrado. Define **Tiers Abstractos de Inteligencia**:
+Swarm-Forge no favorece a un proveedor cerrado. Define **Tiers Abstractos de Inteligencia**. En el Modo A eliges **una columna** y todo el enjambre usa ese proveedor:
 
 | Tier Abstracto | Rol en el Swarm | Antigravity (AGY) | Claude Code | OpenAI / Codex | OpenCode (Open Weights) |
 |---|---|---|---|---|---|
@@ -116,7 +140,27 @@ Revisa la tabla completa y parámetros en [`ROSETTA_STONE.md`](./ROSETTA_STONE.m
 
 ---
 
+## 🧬 Modo B: Rosters Multi-Proveedor (herdr)
+
+En el Modo B las columnas de arriba dejan de ser excluyentes: el Sentinel puede correr en Gemini Flash, los workers en Claude Sonnet y los auditores en DeepSeek o Gemini Pro. Además, un juez de otra familia de modelos detecta errores que el modelo que escribió el código no ve (**Ley de Diversidad Adversarial**).
+
+La asignación ya no sale de la Rosetta Stone, sino de un catálogo de capacidades que el recomendador cruza con los CLIs que tienes instalados:
+
+```bash
+node tools/recommend-roster.mjs --topology topology.json --profile balanced --out roster.json
+node providers/herdr/swarm-up.mjs --roster roster.json --phase 0 --apply
+```
+
+Puedes operarlo a mano, con el script, o dejar que tu agente principal dirija al resto (**Agente-Director**, [`SENTINEL_PROMPT.md`](./providers/herdr/SENTINEL_PROMPT.md)).
+
+Especificación en [`spec/MIXED_ROSTER.md`](./spec/MIXED_ROSTER.md); instalación y operación en [`providers/herdr/`](./providers/herdr/).
+
+---
+
 ## 🛠️ Cómo Adoptar Swarm-Forge en tu Proyecto
+
+### Paso 0: Elige el Modo
+¿Un solo proveedor (Modo A) o varios (Modo B)? Ver [`SWARM_MODES.md`](./SWARM_MODES.md).
 
 ### Paso 1: Identifica tu Topología
 Revisa las carpetas en [`topologies/`](./topologies/):
@@ -129,6 +173,10 @@ Copia el archivo `AGENTS.template.md` (o equivalente de tu proveedor) a la raíz
 
 ### Paso 3: Adapta los Write-Locks y Comandos de Build
 Ajusta las rutas relativas de tus carpetas y los comandos de compilación estricta (`tsc --noEmit`, `flutter analyze`, `pytest`, `cargo test`).
+
+### Paso 4: Asigna los Modelos
+- **Modo A:** usa la columna de tu proveedor en [`ROSETTA_STONE.md`](./ROSETTA_STONE.md).
+- **Modo B:** copia también `topology.json`, genera tu `roster.json` con [`tools/recommend-roster.mjs`](./tools/recommend-roster.mjs) y sigue [`providers/herdr/README.md`](./providers/herdr/README.md).
 
 ---
 

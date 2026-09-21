@@ -1,0 +1,23 @@
+{
+  "$comment": "Requisitos por rol, derivados de spec/ROLES.md. 'weights' pondera las capacidades del modelo; 'kind' define la separación de poderes: 'writer' produce código, 'judge' lo evalúa (no puede compartir familia con los writers si hay alternativa), 'coord' coordina, 'utility' lee.",
+  "version": "1.0.0",
+  "roles": {
+    "sentinel":            { "kind": "coord",   "visionRequired": true,  "weights": { "reasoning": 1, "coding": 0, "speed": 2 } },
+    "orchestrator":        { "kind": "coord",   "visionRequired": false, "weights": { "reasoning": 3, "coding": 1, "speed": 0 } },
+    "explorer":            { "kind": "utility", "visionRequired": false, "weights": { "reasoning": 0, "coding": 1, "speed": 3 }, "instances": 3 },
+    "worker":              { "kind": "writer",  "visionRequired": false, "weights": { "reasoning": 1, "coding": 3, "speed": 1 } },
+    "worker_ui":           { "kind": "writer",  "visionRequired": true,  "weights": { "reasoning": 1, "coding": 3, "speed": 1 } },
+    "challenger":          { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 2, "coding": 2, "speed": 1 } },
+    "code-reviewer":       { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 3, "coding": 2, "speed": 0 } },
+    "security-auditor":    { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 3, "coding": 1, "speed": 0 } },
+    "contract-integrator": { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 3, "coding": 2, "speed": 0 } },
+    "forensic-auditor":    { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 3, "coding": 1, "speed": 0 } },
+    "victory-auditor":     { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 3, "coding": 1, "speed": 0 } }
+  },
+  "uiStackHints": ["frontend", "web", "mobile", "backoffice", "landing", "nextjs", "astro", "flutter", "react", "vue", "svelte", "radix"],
+  "profiles": {
+    "budget":   { "costWeight": 3.0 },
+    "balanced": { "costWeight": 1.5 },
+    "quality":  { "costWeight": 0.3 }
+  }
+}

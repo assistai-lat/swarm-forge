@@ -1,5 +1,9 @@
 # 🗿 Rosetta Stone: Mapeo Universal de Inteligencia y Modelos
 
+> **Alcance: Modo A — Mono-Proveedor.** Cada columna describe un enjambre completo dentro de un solo proveedor. Si quieres combinar modelos de varios proveedores en un mismo enjambre (Modo B), la asignación sale de [`catalog/`](./catalog/) y [`spec/MIXED_ROSTER.md`](./spec/MIXED_ROSTER.md). Ver [`SWARM_MODES.md`](./SWARM_MODES.md).
+>
+> Los modelos de las tablas son ejemplos de su época; el contrato es el **Tier abstracto**.
+
 Este documento traduce la arquitectura de **Tiers Abstractos de Inteligencia** de Swarm-Forge a los modelos, mecanismos de razonamiento (*thinking*) y herramientas nativas de los cuatro principales entornos de desarrollo asistido por IA:
 
 1. **Antigravity (AGY)** — Google DeepMind (Referencia Dorada)
