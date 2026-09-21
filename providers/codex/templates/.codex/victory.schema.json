@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Swarm-Forge Victory Verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "criteria", "build", "tests"],
+  "properties": {
+    "verdict": { "type": "string", "enum": ["VICTORY CONFIRMED", "VICTORY REJECTED"] },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "status", "evidence"],
+        "properties": {
+          "criterion": { "type": "string" },
+          "status": { "type": "string", "enum": ["PASS", "FAIL"] },
+          "evidence": { "type": "string", "description": "archivo:línea o salida de comando" }
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "exitCode"],
+      "properties": { "command": { "type": "string" }, "exitCode": { "type": "integer" } }
+    },
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "exitCode", "skipped"],
+      "properties": {
+        "command": { "type": "string" },
+        "exitCode": { "type": "integer" },
+        "skipped": { "type": "integer" }
+      }
+    }
+  }
+}

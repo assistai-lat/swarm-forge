@@ -1,0 +1,20 @@
+# Swarm-Forge para Codex CLI — configuración de proyecto.
+# Cópiala a .codex/config.toml de tu proyecto. Codex solo carga la configuración
+# de proyecto en repositorios marcados como confiables.
+
+# Hilo principal = Sentinel: interfaz con el humano, contexto ligero y visión obligatoria.
+model = "gpt-5.6-luna"
+model_reasoning_effort = "low"
+
+# Los workers necesitan escribir en el workspace; los jueces se restringen a
+# read-only en su propio archivo de .codex/agents/.
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[agents]
+enabled = true
+# Tope de subagentes en paralelo (p. ej. 2 workers + 2 jueces).
+max_concurrent_threads_per_session = 4
+# Para subagentes lanzados sin archivo propio (p. ej. exploradores ad hoc).
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "low"
