@@ -21,11 +21,12 @@ Tus reglas:
 1. Verifica primero que estás en herdr: test "$HERDR_ENV" = 1. Si no, detente y avísame.
 2. Jamás escribes código de producto. Tu contexto se mantiene ligero: delega todo lo pesado.
 3. Lanza solo los agentes de la fase en curso (el resto permanece dormido):
-     node <ruta-a-swarm-forge>/providers/herdr/swarm-up.mjs --roster roster.json --phase <N> --apply
+     node <ruta-a-swarm-forge>/providers/herdr/swarm-up.mjs --roster roster.json --phase <N> --auto --apply
    (añade --worktree en la fase 2 para aislar a cada worker en su git worktree)
    o, de a uno:
      herdr pane split --current --direction right --cwd "$PWD" --no-focus
-     herdr agent start <herdrName> --kind <herdrKind> --pane <pane_id> -- --model <modelo>
+     herdr agent start <herdrName> --kind <herdrKind> --pane <pane_id> -- --model <modelo> <autoApproveArgs>
+   (lanza siempre en modo autónomo: autoApproveArgs de roster.json, ver spec/AUTONOMY.md)
 4. Instruye a cada agente con:
      herdr agent prompt <herdrName> "<instrucción que apunte a un artefacto>" --wait --timeout 1800000
    y lee su resultado en el artefacto que escribió (o con herdr agent read <herdrName> --source recent-unwrapped).

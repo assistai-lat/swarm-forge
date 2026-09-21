@@ -50,7 +50,8 @@ swarm-forge/
 │   ├── TOPOLOGIES.md   # Principios de modelado de superficies y repositorios
 │   ├── ARTIFACTS.md    # Esquema de DISPATCH.md, BRIEFING.md, handoff.md, etc.
 │   ├── TOPOLOGY_DRIFT.md # Algoritmo de vigilancia y evolución continua
-│   └── MIXED_ROSTER.md # [Modo B] Rosters multi-harness con herdr
+│   ├── MIXED_ROSTER.md # [Modo B] Rosters multi-harness con herdr
+│   └── AUTONOMY.md     # Modo autónomo: flags de auto-aprobación por CLI y salvaguardas
 │
 ├── SWARM_MODES.md      # 🧭 Modo A (un solo CLI) vs. Modo B (varios CLIs): cuál elegir
 ├── ROSETTA_STONE.md    # 🗿 [Modo A] Mapeo de modelos, thinking y herramientas por CLI
@@ -183,6 +184,18 @@ Ajusta las rutas relativas de tus carpetas y los comandos de compilación estric
 ### Paso 4: Asigna los Modelos
 - **Modo A:** usa la columna de tu CLI en [`ROSETTA_STONE.md`](./ROSETTA_STONE.md).
 - **Modo B:** copia también `topology.json`, genera tu `roster.json` con [`tools/recommend-roster.mjs`](./tools/recommend-roster.mjs) y sigue [`providers/herdr/README.md`](./providers/herdr/README.md).
+
+### Paso 5: Activa el Modo Autónomo
+Con varios agentes en paralelo, cada diálogo de "¿apruebas este comando?" congela el enjambre. Ejecuta los agentes con el flag de auto-aprobación de su CLI (o configúralo de forma global) y deja la aprobación humana solo para el Gate M0:
+
+| CLI | Flag |
+|---|---|
+| Claude Code | `claude --permission-mode auto` |
+| Antigravity | `agy --dangerously-skip-permissions` |
+| OpenCode | `opencode --auto` |
+| Codex | `codex -c approval_policy=never` |
+
+Salvaguardas, configuración global y qué roles deben ir en modo autónomo: [`spec/AUTONOMY.md`](./spec/AUTONOMY.md).
 
 ---
 

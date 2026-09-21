@@ -184,6 +184,9 @@ function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile }) 
       herdrKind: modelCatalog.harnesses[model.harness].herdrKind,
       model: model.model,
       ...(model.extraArgs && { extraArgs: model.extraArgs }),
+      ...(modelCatalog.harnesses[model.harness].autoApproveArgs && {
+        autoApproveArgs: modelCatalog.harnesses[model.harness].autoApproveArgs,
+      }),
       modelId: model.id,
       family: model.family,
       score: Math.round(score * 10) / 10,

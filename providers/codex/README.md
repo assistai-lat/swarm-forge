@@ -37,6 +37,7 @@ echo ".codex/swarm/" >> .gitignore
 ```
 
 - Codex solo carga `.codex/config.toml` en proyectos **confiables**: acepta el diálogo de confianza la primera vez.
+- Para el enjambre, usa el **modo autónomo**: `codex -c approval_policy=never` (o `approval_policy = "never"` en `config.toml`). Elimina los diálogos pero mantiene el sandbox, así que los jueces `read-only` siguen sin poder escribir. Ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).
 - Adapta los comandos de verificación en `AGENTS.md` y los Write-Locks en `topology.json`.
 
 ## Estructura

@@ -77,6 +77,7 @@ permission:
 
 ## Operación
 
+- Lanza OpenCode en **modo autónomo**: `opencode --auto`. Aprueba todo lo que no esté explícitamente negado, así que los Write-Locks (`edit: "*": deny`) y los `deny` de los jueces se siguen respetando. Ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).
 - Pide el enjambre en lenguaje natural ("usa el enjambre para...") o cámbiate al agente `sentinel`.
 - El Sentinel delega en el `orchestrator`, este escribe `DISPATCH.md` y los workers se invocan como subagentes.
 - Para el `victory-auditor`, pásale solo los criterios de aceptación y las rutas: así mantiene el contexto frío.

@@ -5,21 +5,23 @@
 //
 // Uso (desde un pane de herdr):
 //   node providers/herdr/swarm-up.mjs --roster roster.json --phase 0            # simulación
-//   node providers/herdr/swarm-up.mjs --roster roster.json --phase 2 --worktree --apply
+//   node providers/herdr/swarm-up.mjs --roster roster.json --phase 2 --worktree --auto --apply
 //   node providers/herdr/swarm-up.mjs --roster roster.json --roles code-reviewer,forensic-auditor --apply
 //
 // Por defecto es un DRY-RUN: imprime los comandos herdr sin ejecutarlos.
+// --auto lanza cada CLI en modo autónomo (sin diálogos de permisos; ver spec/AUTONOMY.md).
 
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 function parseArgs(argv) {
-  const args = { apply: false, worktree: false, brief: true };
+  const args = { apply: false, worktree: false, brief: true, auto: false };
   for (let i = 0; i < argv.length; i++) {
     const key = argv[i].replace(/^--/, "");
     if (key === "apply") args.apply = true;
     else if (key === "worktree") args.worktree = true;
+    else if (key === "auto") args.auto = true;
     else if (key === "no-brief") args.brief = false;
     else if (key === "help" || key === "h") args.help = true;
     else args[key] = argv[++i];
@@ -78,7 +80,8 @@ function createHome(agent, args, opts) {
 // Un pane recién creado puede tardar en mostrar su prompt de shell.
 function startAgent(agent, paneId, opts) {
   const args = ["agent", "start", agent.herdrName, "--kind", agent.herdrKind, "--pane", paneId,
-    "--timeout", "60000", "--", "--model", agent.model, ...(agent.extraArgs ?? [])];
+    "--timeout", "60000", "--", "--model", agent.model, ...(agent.extraArgs ?? []),
+    ...(opts.auto ? agent.autoApproveArgs ?? [] : [])];
   for (let attempt = 1; ; attempt++) {
     try {
       return herdr(args, opts);
@@ -122,7 +125,7 @@ function selectAgents(roster, args) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || !args.roster) {
-    console.log("Uso: node providers/herdr/swarm-up.mjs --roster roster.json [--phase 0|2|3|4 | --roles a,b] [--worktree] [--no-brief] [--apply]");
+    console.log("Uso: node providers/herdr/swarm-up.mjs --roster roster.json [--phase 0|2|3|4 | --roles a,b] [--worktree] [--auto] [--no-brief] [--apply]");
     process.exit(args.help ? 0 : 2);
   }
 
@@ -134,7 +137,7 @@ function main() {
   const roster = JSON.parse(readFileSync(resolve(args.roster), "utf8"));
   args.cwd ??= process.cwd();
   args.workspace ??= process.env.HERDR_WORKSPACE_ID ?? "<workspace-actual>";
-  const opts = { apply: args.apply };
+  const opts = { apply: args.apply, auto: args.auto };
 
   const agents = selectAgents(roster, args);
   if (agents.length === 0) {

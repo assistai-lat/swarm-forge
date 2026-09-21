@@ -31,8 +31,12 @@ Una sola vez por máquina:
 # 1. Instala herdr: https://herdr.dev/docs/quick-start/
 
 # 2. Integración de estado: el harness le informa a herdr cuándo trabaja, termina o te espera
-#    (más preciso que la detección por pantalla). Repetir por cada harness que uses.
+#    (más preciso que la detección por pantalla). Instala la de cada CLI que uses: sin ella,
+#    herdr puede reportar "done" a un agente que en realidad espera una aprobación.
 herdr integration install claude
+herdr integration install opencode
+herdr integration install codex
+herdr integration install antigravity-cli
 
 # 3. Skill de herdr para tu agente principal (necesario para el Nivel 3, Agente-Director).
 #    Ejemplo para Claude Code; en otros harnesses, copia la salida de `herdr --skill`
@@ -66,15 +70,16 @@ node tools/recommend-roster.mjs --topology topology.json --profile balanced --ou
 
 # 3. Desde un pane de herdr, simula y luego lanza por fases
 node providers/herdr/swarm-up.mjs --roster roster.json --phase 0            # dry-run: exploradores
-node providers/herdr/swarm-up.mjs --roster roster.json --phase 0 --apply
-node providers/herdr/swarm-up.mjs --roster roster.json --phase 2 --worktree --apply   # tras el Gate M0
-node providers/herdr/swarm-up.mjs --roster roster.json --phase 3 --apply
-node providers/herdr/swarm-up.mjs --roster roster.json --phase 4 --apply
+node providers/herdr/swarm-up.mjs --roster roster.json --phase 0 --auto --apply
+node providers/herdr/swarm-up.mjs --roster roster.json --phase 2 --worktree --auto --apply   # tras el Gate M0
+node providers/herdr/swarm-up.mjs --roster roster.json --phase 3 --auto --apply
+node providers/herdr/swarm-up.mjs --roster roster.json --phase 4 --auto --apply
 ```
 
 - Por defecto **no ejecuta nada**: imprime los comandos. `--apply` los ejecuta y exige `HERDR_ENV=1`.
 - Lanza por fases a propósito: los roles que no participan en la fase actual permanecen dormidos (Principio de Cero Desperdicio de Tokens).
 - `sentinel` y `orchestrator` no se lanzan por defecto: el Sentinel es normalmente el agente con el que ya hablas en tu pane. Usa `--roles orchestrator` si quieres uno separado.
+- `--auto` lanza cada CLI en **modo autónomo** con su flag (`--permission-mode auto`, `--dangerously-skip-permissions`, `--auto`, `approval_policy=never`), para que el enjambre no se congele en diálogos de aprobación. Úsalo siempre con `--worktree` en la fase 2. Ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).
 - Cada agente recibe un brief corto con su rol, Write-Lock y `verifyCommand`; desactívalo con `--no-brief`.
 - Si un agente arranca bloqueado (p. ej. el diálogo de confianza de carpeta del harness), el lanzador sigue con el resto y te lista cuáles revisar con `herdr agent read`.
 

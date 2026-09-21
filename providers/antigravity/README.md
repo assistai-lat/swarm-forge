@@ -22,3 +22,7 @@ cp -r providers/antigravity/skills/swarm-forge ~/.gemini/antigravity-cli/skills/
 ```
 
 Una vez copiado, en cualquier repositorio donde abras `agy`, el motor reconocerá automáticamente los protocolos de Swarm-Forge.
+
+## Modo autónomo
+
+Para operar el enjambre sin diálogos de aprobación en cada comando, lanza AGY con `agy --dangerously-skip-permissions`. Hazlo solo en repositorios confiables y con git limpio; ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).

@@ -1,26 +1,40 @@
 {
-  "$comment": "Catálogo de capacidades por modelo. Las puntuaciones (1-5) son relativas y editables. 'confidence' indica cuán verificado está cada perfil: 'verified' (probado por el mantenedor), 'assumed' (inferido de la documentación del proveedor), 'unverified' (solo el nombre fue descubierto con `agy models` / `opencode models`). El recomendador penaliza lo no verificado y lo reporta. 'extraArgs' son argumentos nativos adicionales del CLI (p. ej. el nivel de razonamiento de Codex).",
+  "$comment": "Catálogo de capacidades por modelo. Las puntuaciones (1-5) son relativas y editables. 'confidence' indica cuán verificado está cada perfil: 'verified' (probado por el mantenedor), 'assumed' (inferido de la documentación del proveedor), 'unverified' (solo el nombre fue descubierto con `agy models` / `opencode models`). El recomendador penaliza lo no verificado y lo reporta. 'extraArgs' son argumentos nativos adicionales del CLI (p. ej. el nivel de razonamiento de Codex). 'autoApproveArgs' es el flag de modo autónomo de cada CLI (ver spec/AUTONOMY.md); swarm-up.mjs lo añade con --auto.",
   "version": "1.0.0",
   "harnesses": {
     "claude": {
       "herdrKind": "claude",
       "modelFlag": "--model",
-      "discover": null
+      "discover": null,
+      "autoApproveArgs": [
+        "--permission-mode",
+        "auto"
+      ]
     },
     "agy": {
       "herdrKind": "agy",
       "modelFlag": "--model",
-      "discover": "agy models"
+      "discover": "agy models",
+      "autoApproveArgs": [
+        "--dangerously-skip-permissions"
+      ]
     },
     "opencode": {
       "herdrKind": "opencode",
       "modelFlag": "--model",
-      "discover": "opencode models"
+      "discover": "opencode models",
+      "autoApproveArgs": [
+        "--auto"
+      ]
     },
     "codex": {
       "herdrKind": "codex",
       "modelFlag": "--model",
-      "discover": null
+      "discover": null,
+      "autoApproveArgs": [
+        "-c",
+        "approval_policy=never"
+      ]
     },
     "gemini": {
       "herdrKind": "gemini",
