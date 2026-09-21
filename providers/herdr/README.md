@@ -1,6 +1,6 @@
 # 🐑 herdr — Adaptador para Enjambres Multi-Harness (Modo B)
 
-> **Estado:** Funcional en modo simulación (dry-run). Pendiente de validación end-to-end con `--apply`.
+> **Estado:** Probado en vivo con herdr 0.9: `agent start` / `prompt` / `read` con OpenCode y AGY, y `ask.mjs` de punta a punta con OpenCode. `swarm-up.mjs --apply` (lanzamiento por fases) sigue sin prueba real.
 >
 > Este adaptador es el **Modo B — Multi-Harness**: varios CLIs de agentes en un mismo enjambre. Si trabajas con un solo CLI no lo necesitas (Modo A), aunque ese CLI mezcle modelos de varias familias, como OpenCode. Comparativa en [`SWARM_MODES.md`](../../SWARM_MODES.md).
 
@@ -13,9 +13,9 @@
 | Concepto Swarm-Forge | Primitiva herdr |
 |---|---|
 | Instanciar un rol con su modelo | `herdr agent start <rol> --kind <harness> --pane <id> -- --model <modelo>` |
-| Despachar (`DISPATCH.md`) | `herdr agent prompt <rol> "Lee DISPATCH.md..." --wait --timeout <ms>` |
-| Esperar el handoff | `herdr agent wait <rol>` (estados `idle` / `done` / `blocked`) |
-| Leer el resultado | `herdr agent read <rol> --source recent-unwrapped --lines 200` + `handoff.md` en disco |
+| Despachar y recibir la respuesta | `node providers/herdr/ask.mjs <rol> "Lee DISPATCH.md..."`: la respuesta llega en un archivo `.md` con marca de fin (ver [Canal de respuesta por archivo](#canal-de-respuesta-por-archivo)) |
+| Esperar el handoff | La marca de fin del archivo de respuesta; `herdr agent wait <rol>` solo como aviso (el estado no es fiable en todos los CLIs) |
+| Leer el resultado | El archivo de respuesta y `handoff.md` en disco; `herdr agent read` solo para diagnosticar |
 | **Write-Lock físico** | `herdr worktree create --branch swarm/<worker>`: cada writer trabaja en su propio git worktree |
 | Verificación de la superficie | `herdr pane run <pane> "<verifyCommand>"` + `herdr pane wait-output --match ...` |
 | Gate humano M0 | Un agente en `blocked` aparece en rojo en la barra lateral: el humano ve quién espera respuesta |
@@ -43,6 +43,21 @@ herdr integration install antigravity-cli
 #    a su carpeta de skills o reglas.
 mkdir -p ~/.claude/skills/herdr && herdr --skill > ~/.claude/skills/herdr/SKILL.md
 ```
+
+### Qué informa cada integración
+
+No todas las integraciones hacen lo mismo. Solo algunas le informan a herdr el estado del agente; las demás solo registran el ID de la sesión (para retomarla tras un reinicio) y herdr sigue adivinando el estado mirando la pantalla:
+
+| CLI | Mecanismo | Informa el estado (working / blocked / idle) |
+|---|---|---|
+| **OpenCode** | Plugin JS `herdr-agent-state.js` en `~/.config/opencode/plugins/` | ✅ Sí: herdr usa el aviso del plugin en vez de la pantalla. Excepción: en OpenCode V2, los clientes Mini y sin interfaz no lo reportan. |
+| **Claude Code** | Hook `SessionStart` (`~/.claude/hooks/herdr-agent-state.ps1`) | ❌ No: solo la sesión (`report-agent-session`), verificado en el hook instalado. El estado sale de la detección en pantalla. |
+| **Antigravity** | Hook `PreInvocation` en `~/.gemini/config/hooks.json` | ❌ No: solo la conversación (`agy --conversation <id>`). |
+| **Codex** | Hook `SessionStart` en `~/.codex/hooks.json` + `[features] hooks = true` | ❌ No: solo la sesión. |
+
+Consecuencia: con AGY y Codex, **no confíes en el estado de herdr para saber si un agente terminó**. Usa el [canal de respuesta por archivo](#canal-de-respuesta-por-archivo) y lanza los agentes en [modo autónomo](../../spec/AUTONOMY.md) para que no queden esperando aprobaciones que herdr no detecta.
+
+Fuentes: [integraciones de herdr](https://herdr.dev/docs/integrations/) y el código en [`src/integration/assets/`](https://github.com/herdrdev/herdr/tree/master/src/integration/assets), investigados por agentes de OpenCode y AGY dirigidos con herdr.
 
 > El skill de herdr solo se activa cuando **nombras herdr** en tu pedido (p. ej. *"usa herdr para abrir un Codex que revise mi diff"*). Así el agente nunca abre panes por su cuenta.
 
@@ -85,25 +100,48 @@ node providers/herdr/swarm-up.mjs --roster roster.json --phase 4 --auto --apply
 
 ---
 
-## Bucle del Orchestrator
+## Canal de respuesta por archivo
 
-El orchestrator (en cualquier harness) coordina al resto solo con la CLI de herdr y los artefactos en disco:
+**Regla del Modo B: los agentes responden en un archivo, no en la pantalla.** Cada pedido le indica al agente un archivo `.md` de respuesta y una marca de fin (`<!-- SWARM:DONE -->`) que debe escribir como última línea. El orchestrator espera a que el archivo tenga la marca; nunca infiere la respuesta de la pantalla.
+
+Por qué (lo vimos en una prueba real con herdr 0.9):
+- **Pantalla alterna:** OpenCode dibuja su interfaz en la pantalla alterna de la terminal; lo que sale de ella no queda en el historial y `herdr agent read` solo recupera el final de la respuesta.
+- **Estado poco fiable:** AGY apareció como `done` mientras esperaba una aprobación, y como `idle` mientras clonaba un repo. Con `agent prompt --wait`, la espera terminó al instante.
+- **Artefactos:** el archivo es la misma idea que `handoff.md` y `GATE_STATUS.md`: la fuente de verdad está en disco.
+
+[`ask.mjs`](./ask.mjs) lo hace en un solo comando:
 
 ```bash
-# Fase 2: despacho paralelo a workers en CLIs distintos
-herdr agent prompt worker_api "Lee DISPATCH.md (sección worker_api) y ejecuta tu misión. Al terminar escribe handoff.md." 
-herdr agent prompt worker_web "Lee DISPATCH.md (sección worker_web) y ejecuta tu misión. Al terminar escribe handoff.md."
-herdr agent wait worker_api --timeout 1800000
-herdr agent wait worker_web --timeout 1800000
+node providers/herdr/ask.mjs worker_api "Lee DISPATCH.md (sección worker_api) y ejecuta tu misión." --timeout 1800000
+```
+
+1. Envía el pedido en una sola línea, con las instrucciones del archivo de respuesta (`.swarm/replies/<agente>-<timestamp>.md`).
+2. Confirma la entrega: si no ve actividad, avisa que el pedido pudo no llegar, **sin reenviarlo** (un reenvío por un estado mal detectado duplicaría el trabajo).
+3. Espera la marca de fin e imprime la respuesta. Códigos de salida: `0` respuesta completa · `1` timeout · `3` agente `blocked`.
+
+Añade `.swarm/` a tu `.gitignore`. Probado de punta a punta con OpenCode (GLM-5.3, `--auto`): 16 a 30 segundos por pedido.
+
+---
+
+## Bucle del Orchestrator
+
+El orchestrator (en cualquier harness) coordina al resto solo con `ask.mjs`, la CLI de herdr y los artefactos en disco:
+
+```bash
+# Fase 2: despacho paralelo a workers en CLIs distintos (cada respuesta queda en .swarm/replies/)
+node providers/herdr/ask.mjs worker_api "Lee DISPATCH.md (sección worker_api) y ejecuta tu misión. Al terminar escribe handoff.md." &
+node providers/herdr/ask.mjs worker_web "Lee DISPATCH.md (sección worker_web) y ejecuta tu misión. Al terminar escribe handoff.md." &
+wait
 
 # Fase 3: jueces de otra familia de modelos sobre el diff
-herdr agent prompt forensic-auditor "Audita git diff main...swarm/worker_api y swarm/worker_web. Escribe tu veredicto en GATE_STATUS.md." --wait --timeout 1800000
+node providers/herdr/ask.mjs forensic-auditor "Audita git diff main...swarm/worker_api y swarm/worker_web. Emite FORENSIC CLEAN o FORENSIC REJECTED con evidencia."
 ```
 
 Reglas:
 1. Nunca respondas por tu cuenta a un agente en `blocked`: lee su pantalla (`herdr agent read`) y escala al humano.
-2. Un `timeout` no prueba que el prompt no llegó: no reenvíes a ciegas.
+2. Un `timeout` no prueba que el pedido no llegó: no reenvíes a ciegas.
 3. No cierres panes, pestañas ni worktrees que no creó el enjambre.
+4. El primer pedido enviado justo después de `agent start` se perdió una vez en nuestras pruebas (causa sin confirmar): si `ask.mjs` avisa que no vio actividad, revisa la pantalla antes de hacer nada.
 
 ---
 

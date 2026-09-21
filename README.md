@@ -157,7 +157,7 @@ node tools/recommend-roster.mjs --topology topology.json --profile balanced --ou
 node providers/herdr/swarm-up.mjs --roster roster.json --phase 0 --apply
 ```
 
-Puedes operarlo a mano, con el script, o dejar que tu agente principal dirija al resto (**Agente-Director**, [`SENTINEL_PROMPT.md`](./providers/herdr/SENTINEL_PROMPT.md)).
+Puedes operarlo a mano, con el script, o dejar que tu agente principal dirija al resto (**Agente-Director**, [`SENTINEL_PROMPT.md`](./providers/herdr/SENTINEL_PROMPT.md)). En todos los casos, los agentes responden en archivos `.md` con marca de fin, no en la pantalla ([`ask.mjs`](./providers/herdr/ask.mjs)).
 
 Especificación en [`spec/MIXED_ROSTER.md`](./spec/MIXED_ROSTER.md); instalación y operación en [`providers/herdr/`](./providers/herdr/).
 

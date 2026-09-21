@@ -9,7 +9,7 @@
 En una sesión normal, cada CLI pide aprobación antes de ejecutar comandos, editar archivos o acceder a la web. Con un solo agente eso es razonable. Con 5 a 15 agentes en paralelo:
 
 1. **El enjambre se detiene** en cada diálogo de aprobación, y nadie lo está mirando.
-2. **El estado se vuelve engañoso.** Caso real (herdr 0.9, AGY 1.2.7, sin la integración de herdr instalada): AGY esperaba aprobación para un `curl` y herdr lo reportaba como `done` en vez de `blocked`. El orchestrator habría creído que había terminado.
+2. **El estado se vuelve engañoso.** Caso real (herdr 0.9, AGY 1.2.7): AGY esperaba aprobación para un `curl` y herdr lo reportaba como `done` en vez de `blocked`. El orchestrator habría creído que había terminado. Instalar la integración de herdr para AGY no lo evita: solo registra la sesión, no el estado.
 3. **El humano se satura** aprobando comandos triviales y pierde de vista el único gate que sí le corresponde: el **Gate M0**.
 
 > El modo autónomo **no elimina el control humano**: el Gate M0 (aprobación del plan) y la entrega del Victory Auditor siguen siendo decisiones humanas. Lo que se elimina es la micro-aprobación de cada comando.
@@ -66,4 +66,4 @@ El modo autónomo solo es seguro si el resto del protocolo está en su lugar:
   ```bash
   herdr agent start worker_api --kind agy --pane <id> -- --model gemini-3.8-flash-high --dangerously-skip-permissions
   ```
-- **Integraciones de herdr:** instala también `herdr integration install <cli>` (`claude`, `opencode`, `codex`, `antigravity-cli`...) para que herdr detecte con precisión cuándo un agente sí queda esperando.
+- **Integraciones de herdr:** instala `herdr integration install <cli>` para cada CLI. Solo la de **OpenCode** le informa a herdr el estado del agente (incluido `blocked`); las de Claude Code, AGY y Codex solo registran la sesión (detalle en [`providers/herdr/README.md`](../providers/herdr/README.md#qué-informa-cada-integración)). Por eso el modo autónomo es imprescindible con AGY y Codex, y las respuestas se reciben por archivo, no por el estado del agente.

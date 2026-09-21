@@ -105,6 +105,7 @@ function briefFor(agent, roster) {
   if (agent.kind === "judge") {
     lines.push("Eres un juez: nunca modificas código de producto. Emites veredicto PASS/FAIL con evidencia.");
   }
+  lines.push("Cada pedido que recibas indicará un archivo de respuesta: escribe ahí tu respuesta completa en Markdown, terminada en la marca que se te indique, en vez de responder solo en pantalla.");
   lines.push("No hagas nada todavía: espera tu DISPATCH del orchestrator.");
   return lines.join(" ");
 }

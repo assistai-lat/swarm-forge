@@ -16,7 +16,7 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 // Artefactos de coordinación que cualquier rol puede escribir.
-const ALWAYS_ALLOWED = [".codex/swarm/**", ".opencode/swarm/**", ".claude/swarm/**", "handoff*.md"];
+const ALWAYS_ALLOWED = [".swarm/**", ".codex/swarm/**", ".opencode/swarm/**", ".claude/swarm/**", "handoff*.md"];
 
 function parseArgs(argv) {
   const args = {};

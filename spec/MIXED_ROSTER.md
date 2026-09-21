@@ -94,7 +94,7 @@ Los subagentes nativos (`Task` de Claude Code, `invoke_subagent` de AGY, `task` 
 | Capa | Cómo |
 |---|---|
 | **Multiplexor de agentes** (recomendado) | [`providers/herdr/`](../providers/herdr/): cada rol es un agente real (Claude Code, AGY, OpenCode, Codex...) en su propio pane, controlado por CLI (`herdr agent start / prompt / wait / read`). Los writers pueden aislarse en git worktrees. |
-| **Artefactos en disco** | Siempre obligatoria: `DISPATCH.md`, `handoff.md` y `GATE_STATUS.md` son el único canal de estado entre modelos distintos, que no comparten memoria ni formato de herramientas. |
+| **Artefactos en disco** | Siempre obligatoria: `DISPATCH.md`, `handoff.md`, `GATE_STATUS.md` y las respuestas en `.swarm/replies/` (canal de respuesta por archivo, con [`ask.mjs`](../providers/herdr/ask.mjs)) son el único canal de estado entre modelos distintos, que no comparten memoria ni formato de herramientas. Nunca se infiere una respuesta de la pantalla. |
 
 ---
 

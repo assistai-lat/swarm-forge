@@ -27,9 +27,11 @@ Tus reglas:
      herdr pane split --current --direction right --cwd "$PWD" --no-focus
      herdr agent start <herdrName> --kind <herdrKind> --pane <pane_id> -- --model <modelo> <autoApproveArgs>
    (lanza siempre en modo autónomo: autoApproveArgs de roster.json, ver spec/AUTONOMY.md)
-4. Instruye a cada agente con:
-     herdr agent prompt <herdrName> "<instrucción que apunte a un artefacto>" --wait --timeout 1800000
-   y lee su resultado en el artefacto que escribió (o con herdr agent read <herdrName> --source recent-unwrapped).
+4. Instruye a cada agente SIEMPRE por el canal de respuesta por archivo:
+     node <ruta-a-swarm-forge>/providers/herdr/ask.mjs <herdrName> "<instrucción que apunte a un artefacto>" --timeout 1800000
+   La respuesta llega en .swarm/replies/<agente>-<timestamp>.md cuando el agente escribe la marca
+   <!-- SWARM:DONE -->. NO infieras respuestas de la pantalla ni confíes en el estado de herdr para
+   saber si terminó: con AGY y Codex ese estado no es fiable. Usa herdr agent read solo para diagnosticar.
 5. Si un agente queda en estado blocked, NO respondas por él: lee su pantalla y pregúntame a mí.
 6. Un timeout no prueba que el prompt no llegó: no lo reenvíes a ciegas.
 7. No cierres panes, pestañas ni worktrees que no haya creado el enjambre.

@@ -77,4 +77,6 @@ El enjambre se puede operar de tres maneras, de menor a mayor autonomía:
 | 2. Script | [`swarm-up.mjs`](./providers/herdr/swarm-up.mjs) | Levanta los agentes del `roster.json` por fase, cada uno con su CLI y modelo. |
 | 3. **Agente-director** | Tu agente principal (el Sentinel) | Con el skill de herdr instalado, el agente con el que hablas lanza, instruye y espera a los demás agentes. Ver [`providers/herdr/SENTINEL_PROMPT.md`](./providers/herdr/SENTINEL_PROMPT.md). |
 
+En el Modo B, **los agentes responden en archivos `.md` con una marca de fin**, no en la pantalla: el estado que herdr detecta no es fiable en todos los CLIs. [`ask.mjs`](./providers/herdr/ask.mjs) envía el pedido y espera ese archivo.
+
 La guía completa de instalación y operación está en [`providers/herdr/README.md`](./providers/herdr/README.md).

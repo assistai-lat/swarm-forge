@@ -86,7 +86,7 @@
 
 ---
 
-## 3. Las 5 Leyes Inviolables de Swarm-Forge
+## 3. Las 6 Leyes Inviolables de Swarm-Forge
 
 1. **Ley de No-Auto-Aprobación:** Ningún agente que escriba código puede firmar su propia aprobación de calidad.
 2. **Ley del Write-Lock Estricto:** Modificar un archivo no asignado en el `DISPATCH.md` constituye una violación de integridad que anula la iteración.
