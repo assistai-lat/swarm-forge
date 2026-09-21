@@ -24,13 +24,15 @@ En la era del desarrollo asistido por IA, los agentes autónomos suelen cometer 
 
 Swarm-Forge ejecuta **el mismo protocolo** (5 fases, 12 roles, Write-Locks, Gate M0) de dos maneras. Elige una antes de adoptar:
 
-| | 🏠 **Modo A — Mono-Proveedor** | 🧬 **Modo B — Multi-Proveedor** |
+| | 🏠 **Modo A — Mono-Harness (un solo CLI)** | 🧬 **Modo B — Multi-Harness (varios CLIs)** |
 |---|---|---|
-| **Modelos** | Todos de un solo proveedor | Cada rol con el mejor modelo de cualquier proveedor |
-| **Lanza los agentes** | Subagentes nativos del harness (`Task`, `invoke_subagent`...) | [herdr](https://github.com/ogulcancelik/herdr): un CLI real por pane |
+| **Lanza los agentes** | Subagentes nativos del CLI (`Task`, `invoke_subagent`, `task`...) | [herdr](https://github.com/ogulcancelik/herdr): un CLI real por pane |
+| **Modelos** | Los que ofrezca ese CLI: un proveedor (Claude Code, Codex) o varios (OpenCode, AGY) | Cualquier modelo de cualquier CLI instalado |
 | **Asignación de modelos** | [`ROSETTA_STONE.md`](./ROSETTA_STONE.md) | [`catalog/`](./catalog/) + [`tools/recommend-roster.mjs`](./tools/recommend-roster.mjs) → `roster.json` |
 | **Adaptador** | `providers/antigravity`, `claude-code`, `codex`, `opencode` | `providers/herdr` |
-| **Ideal para** | Una sola suscripción, setup simple | Varios proveedores, jueces independientes, optimizar costo por rol |
+| **Ideal para** | Setup simple con un solo CLI | Combinar CLIs, jueces independientes, worktrees por worker |
+
+> "Un solo CLI" no siempre es "un solo proveedor": OpenCode y AGY ya permiten mezclar familias de modelos sin herdr.
 
 👉 Guía completa para decidir: [`SWARM_MODES.md`](./SWARM_MODES.md).
 
@@ -48,28 +50,29 @@ swarm-forge/
 │   ├── TOPOLOGIES.md   # Principios de modelado de superficies y repositorios
 │   ├── ARTIFACTS.md    # Esquema de DISPATCH.md, BRIEFING.md, handoff.md, etc.
 │   ├── TOPOLOGY_DRIFT.md # Algoritmo de vigilancia y evolución continua
-│   └── MIXED_ROSTER.md # [Modo B] Rosters multi-proveedor y Ley de Diversidad Adversarial
+│   └── MIXED_ROSTER.md # [Modo B] Rosters multi-harness con herdr
 │
-├── SWARM_MODES.md      # 🧭 Modo A (Mono-Proveedor) vs. Modo B (Multi-Proveedor): cuál elegir
-├── ROSETTA_STONE.md    # 🗿 [Modo A] Mapeo de modelos, thinking y herramientas por proveedor
+├── SWARM_MODES.md      # 🧭 Modo A (un solo CLI) vs. Modo B (varios CLIs): cuál elegir
+├── ROSETTA_STONE.md    # 🗿 [Modo A] Mapeo de modelos, thinking y herramientas por CLI
 │
 ├── catalog/            # 🧬 [Modo B] Capacidades de modelos y requisitos por rol
-├── tools/              # ⚙️ [Modo B] recommend-roster.mjs: recomienda un roster mixto para tu topología
+├── tools/              # ⚙️ recommend-roster.mjs [Modo B] y check-write-locks.mjs [ambos modos]
 │
 ├── topologies/         # 🎯 STARTER KITS DE TOPOLOGÍAS (Listos para copiar a cualquier proyecto)
 │   ├── 01-dual-surface/        # Chronus style: Backend API + Web SPA
 │   ├── 02-multi-microservice/  # Daido Cloud style: 5 APIs, Python, S3, BullMQ
 │   ├── 03-omnichannel-quad/    # PasajeYa / Kasah style: API + Web + Backoffice + Mobile Flutter
 │   ├── 04-mobile-first-triad/  # Mobile First: API + Landing Web + App Móvil
-│   └── 05-data-ai-pipeline/    # Data Mesh: API + Colas de Workers + LLM / Scraper
+│   ├── 05-data-ai-pipeline/    # Data Mesh: API + Colas de Workers + LLM / Scraper
+│   └── 06-single-repo-monolith/ # funycheck style: Next.js con API y UI en un solo repo
 │
 └── providers/          # 🔌 ADAPTADORES
-    │   ── Modo A: Mono-Proveedor ──
+    │   ── Modo A: Mono-Harness (un solo CLI) ──
     ├── antigravity/    # 🏆 REFERENCIA DE ORO: Implementación completa para Antigravity (AGY)
     ├── claude-code/    # 🏗️ Cascarón + Prompt de desafío para Claude Code
-    ├── codex/          # 🏗️ Cascarón + Prompt de desafío para OpenAI Codex / Operator
-    ├── opencode/       # 🏗️ Cascarón + Prompt de desafío para OpenCode (Modelos abiertos)
-    │   ── Modo B: Multi-Proveedor ──
+    ├── codex/          # ✅ Codex CLI: subagentes TOML, sandbox por rol y victoria con `codex exec`
+    ├── opencode/       # ✅ OpenCode: agentes con Write-Locks físicos y modelos de varias familias
+    │   ── Modo B: Multi-Harness (varios CLIs) ──
     └── herdr/          # 🐑 Enjambres mixtos: cada rol en su propio CLI y modelo, orquestados con herdr
 ```
 
@@ -126,23 +129,25 @@ Cuando un agente de IA adopta **Swarm-Forge** en un repositorio nuevo:
 
 ---
 
-## 🗿 Modo A: Mapeo por Proveedor (Rosetta Stone)
+## 🗿 Modo A: Mapeo por CLI (Rosetta Stone)
 
-Swarm-Forge no favorece a un proveedor cerrado. Define **Tiers Abstractos de Inteligencia**. En el Modo A eliges **una columna** y todo el enjambre usa ese proveedor:
+Swarm-Forge no favorece a un proveedor cerrado. Define **Tiers Abstractos de Inteligencia**. En el Modo A eliges **la columna de tu CLI** y todo el enjambre corre dentro de él:
 
-| Tier Abstracto | Rol en el Swarm | Antigravity (AGY) | Claude Code | OpenAI / Codex | OpenCode (Open Weights) |
+| Tier Abstracto | Rol en el Swarm | Antigravity (AGY) | Claude Code | Codex CLI (OpenAI) | OpenCode |
 |---|---|---|---|---|---|
-| **Tier 1 (Deep Reasoning)** | Orchestrator, Forensic, Victory Auditor | **Gemini Pro** (High Thinking) | **Claude 3.7 Sonnet** (Thinking: 16k) | **o3-mini** (High) / **o1** | **DeepSeek-R1** |
-| **Tier 2 (Fast Precision)** | Workers, Challengers, Code Reviewers | **Gemini Flash** (Med Thinking) | **Claude 3.7 Sonnet** (Standard) | **GPT-4o** | **Qwen 2.5 Coder 32B** |
-| **Tier 3 (Bulk Utility)** | Explorers, Búsqueda, Documentación | **Gemini Flash-Lite** (Min Thinking) | **Claude 3.5 Haiku** | **GPT-4o-mini** | **Llama 3.1 8B** |
+| **Tier 1 (Deep Reasoning)** | Orchestrator, Forensic, Victory Auditor | **Gemini 3.1 Pro** (High) | **Opus** (thinking alto) | **GPT-6 Astra** / **GPT-5.6 Sol** (high) | **GLM-5.3**, **DeepSeek v4 Pro**, **Grok 4.6** |
+| **Tier 2 (Fast Precision)** | Workers, Challengers, Code Reviewers | **Gemini 3.8 Flash** (Medium) | **Sonnet** | **GPT-5.6 Terra** (medium) | **Kimi K2.7 Code**, **Grok 4.6** |
+| **Tier 3 (Bulk Utility)** | Explorers, Búsqueda, Documentación | **Gemini 3.8 Flash** (Low) | **Haiku** | **GPT-5.6 Luna** (low) | **GLM-5.3 Flash** |
+
+*Vigencia: septiembre 2026.*
 
 Revisa la tabla completa y parámetros en [`ROSETTA_STONE.md`](./ROSETTA_STONE.md).
 
 ---
 
-## 🧬 Modo B: Rosters Multi-Proveedor (herdr)
+## 🧬 Modo B: Rosters Multi-Harness (herdr)
 
-En el Modo B las columnas de arriba dejan de ser excluyentes: el Sentinel puede correr en Gemini Flash, los workers en Claude Sonnet y los auditores en DeepSeek o Gemini Pro. Además, un juez de otra familia de modelos detecta errores que el modelo que escribió el código no ve (**Ley de Diversidad Adversarial**).
+En el Modo B las columnas de arriba dejan de ser excluyentes, porque cada rol puede correr en un CLI distinto: el Sentinel puede correr en Gemini Flash, los workers en Claude Sonnet y los auditores en DeepSeek o Gemini Pro. Además, un juez de otra familia de modelos detecta errores que el modelo que escribió el código no ve (**Ley de Diversidad Adversarial**, 6ª Ley del protocolo).
 
 La asignación ya no sale de la Rosetta Stone, sino de un catálogo de capacidades que el recomendador cruza con los CLIs que tienes instalados:
 
@@ -160,13 +165,14 @@ Especificación en [`spec/MIXED_ROSTER.md`](./spec/MIXED_ROSTER.md); instalació
 ## 🛠️ Cómo Adoptar Swarm-Forge en tu Proyecto
 
 ### Paso 0: Elige el Modo
-¿Un solo proveedor (Modo A) o varios (Modo B)? Ver [`SWARM_MODES.md`](./SWARM_MODES.md).
+¿Un solo CLI (Modo A) o varios CLIs coordinados con herdr (Modo B)? Ver [`SWARM_MODES.md`](./SWARM_MODES.md).
 
 ### Paso 1: Identifica tu Topología
 Revisa las carpetas en [`topologies/`](./topologies/):
 - ¿Solo backend y frontend web? Usa [`01-dual-surface`](./topologies/01-dual-surface/).
 - ¿Múltiples APIs y microservicios? Usa [`02-multi-microservice`](./topologies/02-multi-microservice/).
 - ¿API, web pública, backoffice y app móvil? Usa [`03-omnichannel-quad`](./topologies/03-omnichannel-quad/).
+- ¿Un solo repo donde la API y la UI conviven (Next.js App Router)? Usa [`06-single-repo-monolith`](./topologies/06-single-repo-monolith/).
 
 ### Paso 2: Copia el Manifiesto Base
 Copia el archivo `AGENTS.template.md` (o equivalente de tu proveedor) a la raíz de tu proyecto como `AGENTS.md` (para AGY/Codex) o `CLAUDE.md` (para Claude Code).
@@ -175,7 +181,7 @@ Copia el archivo `AGENTS.template.md` (o equivalente de tu proveedor) a la raíz
 Ajusta las rutas relativas de tus carpetas y los comandos de compilación estricta (`tsc --noEmit`, `flutter analyze`, `pytest`, `cargo test`).
 
 ### Paso 4: Asigna los Modelos
-- **Modo A:** usa la columna de tu proveedor en [`ROSETTA_STONE.md`](./ROSETTA_STONE.md).
+- **Modo A:** usa la columna de tu CLI en [`ROSETTA_STONE.md`](./ROSETTA_STONE.md).
 - **Modo B:** copia también `topology.json`, genera tu `roster.json` con [`tools/recommend-roster.mjs`](./tools/recommend-roster.mjs) y sigue [`providers/herdr/README.md`](./providers/herdr/README.md).
 
 ---

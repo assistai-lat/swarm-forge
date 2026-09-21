@@ -1,15 +1,15 @@
 # 🗿 Rosetta Stone: Mapeo Universal de Inteligencia y Modelos
 
-> **Alcance: Modo A — Mono-Proveedor.** Cada columna describe un enjambre completo dentro de un solo proveedor. Si quieres combinar modelos de varios proveedores en un mismo enjambre (Modo B), la asignación sale de [`catalog/`](./catalog/) y [`spec/MIXED_ROSTER.md`](./spec/MIXED_ROSTER.md). Ver [`SWARM_MODES.md`](./SWARM_MODES.md).
+> **Alcance: Modo A — Mono-Harness (un solo CLI).** Cada columna describe un enjambre completo dentro de un CLI. Algunos CLIs (OpenCode, AGY) ofrecen modelos de varias familias: úsalos para cumplir la 6ª Ley (jueces de otra familia). Si quieres combinar **varios CLIs** en un mismo enjambre (Modo B), la asignación sale de [`catalog/`](./catalog/) y [`spec/MIXED_ROSTER.md`](./spec/MIXED_ROSTER.md). Ver [`SWARM_MODES.md`](./SWARM_MODES.md).
 >
-> Los modelos de las tablas son ejemplos de su época; el contrato es el **Tier abstracto**.
+> **Vigencia: septiembre 2026.** Los modelos son ejemplos de su época; el contrato es el **Tier abstracto**. Cuando un proveedor cambie su línea de modelos, actualiza esta tabla y [`catalog/models.json`](./catalog/models.json) a la vez.
 
-Este documento traduce la arquitectura de **Tiers Abstractos de Inteligencia** de Swarm-Forge a los modelos, mecanismos de razonamiento (*thinking*) y herramientas nativas de los cuatro principales entornos de desarrollo asistido por IA:
+Este documento traduce la arquitectura de **Tiers Abstractos de Inteligencia** de Swarm-Forge a los modelos, mecanismos de razonamiento (*thinking*) y herramientas nativas de los cuatro principales CLIs de desarrollo asistido por IA:
 
 1. **Antigravity (AGY)** — Google DeepMind (Referencia Dorada)
 2. **Claude Code** — Anthropic
-3. **Codex / OpenAI Operator** — OpenAI
-4. **OpenCode Interpreter** — Modelos de Código Abierto (Open Weights)
+3. **Codex CLI** — OpenAI
+4. **OpenCode** — Multi-proveedor (gateways como `opencode-go` y modelos locales vía Ollama / vLLM)
 
 ---
 
@@ -36,27 +36,35 @@ Este documento traduce la arquitectura de **Tiers Abstractos de Inteligencia** d
 
 ---
 
-## 2. Matriz de Equivalencias por Proveedor
+## 2. Matriz de Equivalencias por CLI
 
-| Tier Abstracto | Rol Típico en Swarm-Forge | Antigravity (AGY) | Claude Code | OpenAI Codex / CLI | OpenCode (Open Weights) |
+| Tier Abstracto | Rol Típico en Swarm-Forge | Antigravity (AGY) | Claude Code | Codex CLI (OpenAI) | OpenCode |
 |---|---|---|---|---|---|
-| **Tier 1 (Deep Reasoning)** | `Orchestrator`, `Architect`, `Contract Integrator`, `Forensic Auditor`, `Victory Auditor` | **Gemini 2.5 Pro**<br>• Thinking: `Alto`<br>• Contexto: 1M tokens | **Claude 3.7 Sonnet**<br>• Extended Thinking: `16,000 tokens`<br>• System: Arquitecto estricto | **o3-mini** / **o1**<br>• Reasoning effort: `high`<br>• Strict structured outputs | **DeepSeek-R1**<br>• CoT sin censura<br>• Servido en vLLM / Ollama *(100% Texto)* |
-| **Tier 2 (Fast Precision)** | `Domain Workers` (Backend, Mobile, BO), `Challengers`, `Code Reviewers` | **Gemini 2.5 Flash**<br>• Thinking: `Medio`<br>• Ejecución de comandos y tests | **Claude 3.7 Sonnet**<br>• Standard mode (Thinking: `off` o `4k`)<br>• Herramientas de edición | **GPT-4o**<br>• Temperature: `0.1`<br>• Tool calling avanzado | **Qwen 2.5 Coder 32B**<br>• Especializado en código multi-lenguaje *(100% Texto)* |
-| **Tier 2/3 (Multimodal / UI & Sentinel)** | `Sentinel` (Interfaz de usuario), `Worker Frontend`, `UI Inspector` | **Gemini 2.5 Flash / Flash-Lite**<br>• Visión nativa de capturas<br>• Context Shield < 10k | **Claude 3.5 Haiku / Sonnet**<br>• Visión nativa<br>• Inspección de UI y errores | **GPT-4o / GPT-4o-mini**<br>• Visión nativa<br>• Análisis visual rápido | **Qwen 2.5 VL (7B / 72B)** o **Llama 3.2 11B Vision**<br>• ⚠️ **Obligatorio VLM**: No usar modelos text-only |
-| **Tier 3 (Bulk Utility)** | `Explorers / Surveys`, `Docs Writer`, `Liveness Monitor` | **Gemini 2.5 Flash-Lite**<br>• Thinking: `Mínimo / Cero`<br>• 70% ahorro de tokens | **Claude 3.5 Haiku**<br>• Máxima velocidad<br>• Solo lectura de archivos | **GPT-4o-mini**<br>• Ultrarrápido<br>• Inspección de dependencias | **Llama 3.1 8B Instruct**<br>• Ligero en GPU local |
+| **Tier 1 (Deep Reasoning)** | `Orchestrator`, `Architect`, `Contract Integrator`, `Forensic Auditor`, `Victory Auditor` | **`gemini-3.1-pro-high`**<br>• Thinking: `Alto` | **Opus** (`opus`)<br>• Extended thinking alto | **`gpt-6-astra`** (vetos) / **`gpt-5.6-sol`** (planificación)<br>• `model_reasoning_effort = "high"` | **`glm-5.3`** (orchestrator)<br>**`deepseek-v4-pro`** (forensic)<br>**`grok-4.6`** (victory) |
+| **Tier 2 (Fast Precision)** | `Domain Workers` (Backend, Mobile, BO), `Challengers`, `Code Reviewers` | **`gemini-3.8-flash-medium`** / **`-high`**<br>• Thinking: `Medio` | **Sonnet** (`sonnet`) | **`gpt-5.6-terra`**<br>• `model_reasoning_effort = "medium"` | **`kimi-k2.7-code`** (backend)<br>**`grok-4.6`** (reviewers)<br>**`deepseek-v4-pro`** (challenger) |
+| **Tier 2/3 (Multimodal / UI & Sentinel)** | `Sentinel` (Interfaz de usuario), `Worker Frontend`, `UI Inspector` | **`gemini-3.8-flash-low`** (Sentinel)<br>**`gemini-3.8-flash-medium`** (UI)<br>• Visión nativa | **Haiku** (Sentinel)<br>**Sonnet** (UI)<br>• Visión nativa | **`gpt-5.6-luna`** (Sentinel)<br>**`gpt-5.6-terra`** (UI)<br>• Visión nativa | **`glm-5.3`**<br>• ⚠️ **VLM obligatorio**: la mayoría de los modelos de código del gateway son solo texto |
+| **Tier 3 (Bulk Utility)** | `Explorers / Surveys`, `Docs Writer`, `Liveness Monitor` | **`gemini-3.8-flash-low`**<br>• Thinking: `Mínimo` | **Haiku** (`haiku`) | **`gpt-5.6-luna`**<br>• `model_reasoning_effort = "low"` | **`glm-5.3-flash`** (exploración)<br>**`deepseek-v4-flash`** (devops) |
+
+Notas:
+- **Claude Code** usa alias (`opus`, `sonnet`, `haiku`) que el CLI resuelve al modelo vigente de cada línea.
+- **AGY** también ofrece `claude-opus-4-6-thinking`, `claude-sonnet-4-6` y `gpt-oss-120b-medium`: úsalos en los jueces para cumplir la 6ª Ley sin salir de AGY (lista completa con `agy models`).
+- **Codex** solo ofrece modelos de OpenAI: la 6ª Ley no es alcanzable dentro de Codex (ver [`providers/codex/`](./providers/codex/)). Precios y detalles de cada modelo en su README.
+- **OpenCode**: la columna refleja el enjambre de producción de funycheck, corregido para cumplir la 6ª Ley (lista completa con `opencode models`). Con modelos locales, aplica la misma lógica: VLM en la frontera con el usuario y en la UI, y modelos de texto fuertes en el resto.
 
 ---
 
 ## 3. Mapeo de Capacidades y Herramientas
 
-| Concepto Swarm-Forge | Antigravity (AGY) | Claude Code | OpenAI Codex | OpenCode Interpreter |
+| Concepto Swarm-Forge | Antigravity (AGY) | Claude Code | Codex CLI | OpenCode |
 |---|---|---|---|---|
-| **Definición de Agentes y Reglas** | Archivo `AGENTS.md` y `<RULE[]>` en `.gemini/` | Archivo `CLAUDE.md` y `.claude/settings.json` | Archivo `AGENTS.md` / `codex.json` | `opencode.json` y perfiles de sistema |
-| **Gestión de Subagentes** | `invoke_subagent`, `send_message`, `manage_task` | `Task` tool / sub-hilos de Claude | Assistants API / Swarm SDK loops | Múltiples instancias CLI concurrentes |
-| **Aislamiento de Archivos (Write-Locks)** | Especificado en `DISPATCH.md` por worker | Directiva estricta en prompt de sub-tarea | Restricción en `allowed_tools` y prompt | Restricciones de rutas por script |
-| **Comando de Inicio (*Entrypoint*)** | `/teamwork-preview` o skill `@swarm-forge` | Comando `/swarm` o prompt inicial en terminal | Script de orquestación python / CLI | CLI runner con bandera `--profile` |
-| **Soporte MCP (Model Context Protocol)** | `~/.gemini/config/mcp_config.json` | `.mcp.json` o config nativa Claude | Integración MCP nativa | `opencode.json` mcpServers |
-| **Soporte Multimodal / Visión (Capturas de pantalla)** | **Nativo en todos los tiers** (Gemini 2.5 Pro/Flash/Flash-Lite) | **Nativo** (Claude 3.7 / 3.5 procesan imágenes) | **Nativo** (GPT-4o / GPT-4o-mini procesan imágenes) | **Condicional (Requiere VLM)**: El Sentinel y UI deben usar Qwen 2.5 VL o Llama 3.2 Vision. Prohibido usar DeepSeek-R1 text-only en Sentinel. |
+| **Definición de Agentes y Reglas** | `AGENTS.md` y reglas en `.gemini/` | `CLAUDE.md` + subagentes en `.claude/agents/*.md` | `AGENTS.md` + subagentes TOML en `.codex/agents/*.toml` | `.opencode/AGENTS.md` (vía `instructions`) + agentes en `.opencode/agents/*.md` |
+| **Gestión de Subagentes** | `invoke_subagent`, `send_message`, `manage_task` | Herramienta `Task` | Subagentes nativos ("lanza el agente X"); `/agent` cambia de hilo | Herramienta `task` o `@mención` |
+| **Modelo por Subagente** | Parámetro `model` de `invoke_subagent` | Campo `model` del agente | Campos `model` y `model_reasoning_effort` del TOML | Campo `model` del agente (`proveedor/modelo`) |
+| **Aislamiento de Archivos (Write-Locks)** | Especificado en `DISPATCH.md` por worker | Instrucción en el prompt; los jueces sin herramientas de edición (campo `tools`) | Instrucción en el prompt + [`check-write-locks.mjs`](./tools/check-write-locks.mjs); jueces en `sandbox_mode = "read-only"` | **Físico**: `permission.edit` por agente (gana la última regla) |
+| **Comando de Inicio (*Entrypoint*)** | `/teamwork-preview` o skill `@swarm-forge` | Prompt inicial ("usa el enjambre...") | Prompt inicial; `codex exec` para pasos no interactivos | Prompt inicial o agente `sentinel` (`mode: all`) |
+| **Contexto Frío (Victory Audit)** | Subagente nuevo | Subagente nuevo (`Task`) | Proceso nuevo: `codex exec --ephemeral` con `--output-schema` | Subagente nuevo con solo criterios y rutas |
+| **Soporte MCP (Model Context Protocol)** | `~/.gemini/config/mcp_config.json` | `.mcp.json` | `mcp_servers` en `config.toml` | `mcp` en `opencode.json` |
+| **Soporte Multimodal / Visión** | **Nativo** en los modelos Gemini | **Nativo** en Opus, Sonnet y Haiku | **Nativo** en GPT-6 Astra y GPT-5.6 Sol, Terra y Luna | **Condicional**: depende del modelo. Verifica la visión antes de asignar el Sentinel o la UI. |
 
 ---
 
@@ -71,22 +79,22 @@ Cada proveedor debe implementar una política equivalente de **preservación de 
 
 ## 5. Directriz Crítica: El Imperativo Multimodal (VLM vs. Text-Only)
 
-### El Riesgo de la "Ceguera Visual" en Enjambres Locales / Abiertos
-En plataformas en la nube comerciales (Antigravity con Gemini, Claude Code, OpenAI), todos los modelos del catálogo incorporan visión multimodal por defecto. Sin embargo, en el ecosistema de **código abierto (Open Weights / OpenCode / Ollama / vLLM)**, los modelos más populares y con mayor benchmark de código y razonamiento (como **DeepSeek-R1** o **Qwen 2.5 Coder 32B**) son **estrictamente de texto**.
+### El Riesgo de la "Ceguera Visual"
+En Claude Code, AGY y Codex, todos los modelos del catálogo incorporan visión. En cambio, en los gateways multi-proveedor y en los modelos locales (OpenCode, Ollama, vLLM), **muchos de los modelos más fuertes en código y razonamiento son solo texto** (p. ej. `deepseek-v4-pro`, `kimi-k2.7-code`, `grok-4.6` en `opencode-go`).
 
 En el flujo de trabajo real de un desarrollador de software:
 - Los reportes de bugs a menudo consisten en una captura de pantalla del navegador o de la consola de red DevTools.
 - Las tareas de diseño o frontend se apoyan en capturas de pantalla de Figma o wireframes.
 - Los errores de layout no siempre emiten un stacktrace textual, sino un defecto gráfico visible.
 
-Si un proveedor asigna un modelo text-only al `Sentinel` (el agente que atiende al humano) o al revisor de UI:
+Si se asigna un modelo text-only al `Sentinel` (el agente que atiende al humano) o al revisor de UI:
 1. El backend del proveedor arrojará un error 400 (`unsupported media type` / `no image support`) al recibir la captura de pantalla.
 2. El agente ignorará por completo la imagen y alucinará una respuesta desconectada de la realidad visual del usuario.
 3. La experiencia del desarrollador se degradará drásticamente.
 
 ### Las 3 Reglas de Oro Multimodales:
 1. **Regla del Centinela Vidente:** El agente `Sentinel` **SIEMPRE debe ser multimodal (VLM)**. Bajo ninguna circunstancia se debe desplegar un Sentinel con un modelo puramente de texto.
-2. **Especialización Asimétrica en OpenCode:**
-   - **Frontera de Usuario y UI (`Sentinel`, `Worker Frontend`):** Asignar **Qwen 2.5 VL** (7B para rapidez o 72B para alta precisión) o **Llama 3.2 11B Vision**.
-   - **Razonamiento Profundo y Backend (`Orchestrator`, `Forensic Auditor`, `Worker Backend`, `DBA`):** Asignar **DeepSeek-R1** o **Qwen 2.5 Coder 32B** (modelos de texto puro donde su potencia de Chain-of-Thought y generación de código es insuperable).
-3. **Mecanismo de Respaldo (Router / Vision Bridge):** Si la infraestructura local cuenta con memoria VRAM limitada que impida correr un VLM pesado en simultáneo, el adaptador de OpenCode debe configurar una sub-rutina o servidor MCP de visión ligera (ej. `Qwen2.5-VL-7B` o script OCR local) que describa o transcriba visualmente la imagen antes de entregar el payload al orquestador.
+2. **Especialización Asimétrica en CLIs multi-modelo (OpenCode):**
+   - **Frontera de Usuario y UI (`Sentinel`, `Worker Frontend`):** un modelo con visión verificada (hoy `glm-5.3` en `opencode-go`; en local, un VLM de la familia Qwen-VL o equivalente).
+   - **Razonamiento Profundo y Backend (`Orchestrator`, `Forensic Auditor`, `Worker Backend`, `DBA`):** los modelos de texto más fuertes disponibles (hoy `deepseek-v4-pro`, `kimi-k2.7-code`).
+3. **Mecanismo de Respaldo (Router / Vision Bridge):** Si la infraestructura local no puede correr un VLM pesado en simultáneo, el adaptador debe configurar una sub-rutina o servidor MCP de visión ligera (un VLM pequeño o un script OCR local) que describa o transcriba la imagen antes de entregar el payload al orquestador.

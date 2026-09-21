@@ -1,97 +1,330 @@
 {
-  "$comment": "Catálogo de capacidades por modelo. Las puntuaciones (1-5) son relativas y editables. 'confidence' indica cuán verificado está cada perfil: 'verified' (probado por el mantenedor), 'assumed' (inferido de la documentación del proveedor), 'unverified' (solo el nombre fue descubierto con `agy models` / `opencode models`). El recomendador penaliza lo no verificado y lo reporta.",
+  "$comment": "Catálogo de capacidades por modelo. Las puntuaciones (1-5) son relativas y editables. 'confidence' indica cuán verificado está cada perfil: 'verified' (probado por el mantenedor), 'assumed' (inferido de la documentación del proveedor), 'unverified' (solo el nombre fue descubierto con `agy models` / `opencode models`). El recomendador penaliza lo no verificado y lo reporta. 'extraArgs' son argumentos nativos adicionales del CLI (p. ej. el nivel de razonamiento de Codex).",
   "version": "1.0.0",
   "harnesses": {
-    "claude":   { "herdrKind": "claude",   "modelFlag": "--model", "discover": null },
-    "agy":      { "herdrKind": "agy",      "modelFlag": "--model", "discover": "agy models" },
-    "opencode": { "herdrKind": "opencode", "modelFlag": "--model", "discover": "opencode models" },
-    "codex":    { "herdrKind": "codex",    "modelFlag": "--model", "discover": null },
-    "gemini":   { "herdrKind": "gemini",   "modelFlag": "--model", "discover": null }
+    "claude": {
+      "herdrKind": "claude",
+      "modelFlag": "--model",
+      "discover": null
+    },
+    "agy": {
+      "herdrKind": "agy",
+      "modelFlag": "--model",
+      "discover": "agy models"
+    },
+    "opencode": {
+      "herdrKind": "opencode",
+      "modelFlag": "--model",
+      "discover": "opencode models"
+    },
+    "codex": {
+      "herdrKind": "codex",
+      "modelFlag": "--model",
+      "discover": null
+    },
+    "gemini": {
+      "herdrKind": "gemini",
+      "modelFlag": "--model",
+      "discover": null
+    }
   },
   "models": [
     {
       "id": "claude/opus",
-      "harness": "claude", "model": "opus", "family": "anthropic",
-      "reasoning": 5, "coding": 5, "vision": true, "cost": 5, "speed": 2,
+      "harness": "claude",
+      "model": "opus",
+      "family": "anthropic",
+      "reasoning": 5,
+      "coding": 5,
+      "vision": true,
+      "cost": 5,
+      "speed": 2,
       "confidence": "assumed",
       "notes": "Alias del CLI de Claude Code: resuelve al Opus vigente."
     },
     {
       "id": "claude/sonnet",
-      "harness": "claude", "model": "sonnet", "family": "anthropic",
-      "reasoning": 4, "coding": 5, "vision": true, "cost": 3, "speed": 3,
+      "harness": "claude",
+      "model": "sonnet",
+      "family": "anthropic",
+      "reasoning": 4,
+      "coding": 5,
+      "vision": true,
+      "cost": 3,
+      "speed": 3,
       "confidence": "assumed",
       "notes": "Alias del CLI de Claude Code: resuelve al Sonnet vigente."
     },
     {
       "id": "claude/haiku",
-      "harness": "claude", "model": "haiku", "family": "anthropic",
-      "reasoning": 2, "coding": 3, "vision": true, "cost": 1, "speed": 5,
+      "harness": "claude",
+      "model": "haiku",
+      "family": "anthropic",
+      "reasoning": 2,
+      "coding": 3,
+      "vision": true,
+      "cost": 1,
+      "speed": 5,
       "confidence": "assumed",
       "notes": "Alias del CLI de Claude Code: resuelve al Haiku vigente."
     },
     {
       "id": "agy/gemini-3.1-pro-high",
-      "harness": "agy", "model": "gemini-3.1-pro-high", "family": "google",
-      "reasoning": 5, "coding": 4, "vision": true, "cost": 4, "speed": 2,
+      "harness": "agy",
+      "model": "gemini-3.1-pro-high",
+      "family": "google",
+      "reasoning": 5,
+      "coding": 4,
+      "vision": true,
+      "cost": 4,
+      "speed": 2,
       "confidence": "assumed"
     },
     {
       "id": "agy/gemini-3.8-flash-high",
-      "harness": "agy", "model": "gemini-3.8-flash-high", "family": "google",
-      "reasoning": 4, "coding": 4, "vision": true, "cost": 2, "speed": 4,
+      "harness": "agy",
+      "model": "gemini-3.8-flash-high",
+      "family": "google",
+      "reasoning": 4,
+      "coding": 4,
+      "vision": true,
+      "cost": 2,
+      "speed": 4,
       "confidence": "assumed"
     },
     {
       "id": "agy/gemini-3.8-flash-medium",
-      "harness": "agy", "model": "gemini-3.8-flash-medium", "family": "google",
-      "reasoning": 3, "coding": 4, "vision": true, "cost": 2, "speed": 4,
+      "harness": "agy",
+      "model": "gemini-3.8-flash-medium",
+      "family": "google",
+      "reasoning": 3,
+      "coding": 4,
+      "vision": true,
+      "cost": 2,
+      "speed": 4,
       "confidence": "assumed"
     },
     {
       "id": "agy/gemini-3.8-flash-low",
-      "harness": "agy", "model": "gemini-3.8-flash-low", "family": "google",
-      "reasoning": 2, "coding": 3, "vision": true, "cost": 1, "speed": 5,
+      "harness": "agy",
+      "model": "gemini-3.8-flash-low",
+      "family": "google",
+      "reasoning": 2,
+      "coding": 3,
+      "vision": true,
+      "cost": 1,
+      "speed": 5,
       "confidence": "assumed"
     },
     {
       "id": "agy/gpt-oss-120b-medium",
-      "harness": "agy", "model": "gpt-oss-120b-medium", "family": "openai-oss",
-      "reasoning": 3, "coding": 3, "vision": false, "cost": 1, "speed": 4,
+      "harness": "agy",
+      "model": "gpt-oss-120b-medium",
+      "family": "openai-oss",
+      "reasoning": 3,
+      "coding": 3,
+      "vision": false,
+      "cost": 1,
+      "speed": 4,
       "confidence": "assumed",
       "notes": "Modelo de pesos abiertos, solo texto."
     },
     {
       "id": "opencode/deepseek-v4-pro",
-      "harness": "opencode", "model": "opencode-go/deepseek-v4-pro", "family": "deepseek",
-      "reasoning": 5, "coding": 4, "vision": false, "cost": 2, "speed": 2,
+      "harness": "opencode",
+      "model": "opencode-go/deepseek-v4-pro",
+      "family": "deepseek",
+      "reasoning": 5,
+      "coding": 4,
+      "vision": false,
+      "cost": 2,
+      "speed": 2,
       "confidence": "unverified",
       "notes": "Se asume solo texto: existe una variante '-vision-exp' separada."
     },
     {
       "id": "opencode/deepseek-v4-flash-vision-exp",
-      "harness": "opencode", "model": "opencode-go/deepseek-v4-flash-vision-exp", "family": "deepseek",
-      "reasoning": 3, "coding": 3, "vision": true, "cost": 1, "speed": 4,
+      "harness": "opencode",
+      "model": "opencode-go/deepseek-v4-flash-vision-exp",
+      "family": "deepseek",
+      "reasoning": 3,
+      "coding": 3,
+      "vision": true,
+      "cost": 1,
+      "speed": 4,
       "confidence": "unverified",
       "notes": "Experimental. Verificar visión real antes de usarlo como Sentinel."
     },
     {
       "id": "opencode/kimi-k2.7-code",
-      "harness": "opencode", "model": "opencode-go/kimi-k2.7-code", "family": "moonshot",
-      "reasoning": 4, "coding": 4, "vision": false, "cost": 2, "speed": 3,
-      "confidence": "unverified"
+      "harness": "opencode",
+      "model": "opencode-go/kimi-k2.7-code",
+      "family": "moonshot",
+      "reasoning": 4,
+      "coding": 4,
+      "vision": false,
+      "cost": 2,
+      "speed": 3,
+      "confidence": "assumed",
+      "notes": "worker_backend en funycheck."
     },
     {
       "id": "opencode/qwen3.8-max",
-      "harness": "opencode", "model": "opencode-go/qwen3.8-max", "family": "qwen",
-      "reasoning": 4, "coding": 4, "vision": false, "cost": 2, "speed": 3,
+      "harness": "opencode",
+      "model": "opencode-go/qwen3.8-max",
+      "family": "qwen",
+      "reasoning": 4,
+      "coding": 4,
+      "vision": false,
+      "cost": 2,
+      "speed": 3,
       "confidence": "unverified"
     },
     {
+      "id": "codex/gpt-6-astra",
+      "harness": "codex",
+      "model": "gpt-6-astra",
+      "family": "openai",
+      "extraArgs": [
+        "-c",
+        "model_reasoning_effort=high"
+      ],
+      "reasoning": 5,
+      "coding": 5,
+      "vision": true,
+      "cost": 5,
+      "speed": 2,
+      "confidence": "assumed",
+      "notes": "Flagship de OpenAI (sept 2026). $10/$50 por 1M tokens. developers.openai.com/api/docs/models"
+    },
+    {
+      "id": "codex/gpt-5.6-sol",
+      "harness": "codex",
+      "model": "gpt-5.6-sol",
+      "family": "openai",
+      "extraArgs": [
+        "-c",
+        "model_reasoning_effort=high"
+      ],
+      "reasoning": 5,
+      "coding": 5,
+      "vision": true,
+      "cost": 4,
+      "speed": 3,
+      "confidence": "assumed",
+      "notes": "Tope de la familia GPT-5.6: código complejo, ciberseguridad. $4/$20 por 1M."
+    },
+    {
+      "id": "codex/gpt-5.6-terra",
+      "harness": "codex",
+      "model": "gpt-5.6-terra",
+      "family": "openai",
+      "extraArgs": [
+        "-c",
+        "model_reasoning_effort=medium"
+      ],
+      "reasoning": 4,
+      "coding": 4,
+      "vision": true,
+      "cost": 3,
+      "speed": 4,
+      "confidence": "assumed",
+      "notes": "Equilibrio inteligencia/costo. $2/$12 por 1M."
+    },
+    {
+      "id": "codex/gpt-5.6-luna",
+      "harness": "codex",
+      "model": "gpt-5.6-luna",
+      "family": "openai",
+      "extraArgs": [
+        "-c",
+        "model_reasoning_effort=low"
+      ],
+      "reasoning": 3,
+      "coding": 3,
+      "vision": true,
+      "cost": 1,
+      "speed": 5,
+      "confidence": "assumed",
+      "notes": "Alto volumen y bajo costo, con visión. $0.20/$1.20 por 1M."
+    },
+    {
       "id": "opencode/glm-5.3",
-      "harness": "opencode", "model": "opencode-go/glm-5.3", "family": "zhipu",
-      "reasoning": 4, "coding": 4, "vision": false, "cost": 2, "speed": 3,
-      "confidence": "unverified"
+      "harness": "opencode",
+      "model": "opencode-go/glm-5.3",
+      "family": "zhipu",
+      "reasoning": 4,
+      "coding": 4,
+      "vision": true,
+      "cost": 2,
+      "speed": 3,
+      "confidence": "assumed",
+      "notes": "Reportado con visión en la adopción real de funycheck (Sentinel y worker_frontend)."
+    },
+    {
+      "id": "opencode/glm-5.3-flash",
+      "harness": "opencode",
+      "model": "opencode-go/glm-5.3-flash",
+      "family": "zhipu",
+      "reasoning": 2,
+      "coding": 3,
+      "vision": false,
+      "cost": 1,
+      "speed": 5,
+      "confidence": "assumed",
+      "notes": "Exploración en funycheck."
+    },
+    {
+      "id": "opencode/grok-4.6",
+      "harness": "opencode",
+      "model": "opencode-go/grok-4.6",
+      "family": "xai",
+      "reasoning": 4,
+      "coding": 4,
+      "vision": false,
+      "cost": 2,
+      "speed": 3,
+      "confidence": "assumed",
+      "notes": "Code-reviewer y security-auditor en funycheck."
+    },
+    {
+      "id": "opencode/kimi-k2.6",
+      "harness": "opencode",
+      "model": "opencode-go/kimi-k2.6",
+      "family": "moonshot",
+      "reasoning": 3,
+      "coding": 4,
+      "vision": false,
+      "cost": 2,
+      "speed": 3,
+      "confidence": "assumed",
+      "notes": "Challenger en funycheck."
+    },
+    {
+      "id": "opencode/minimax-m3",
+      "harness": "opencode",
+      "model": "opencode-go/minimax-m3",
+      "family": "minimax",
+      "reasoning": 3,
+      "coding": 3,
+      "vision": false,
+      "cost": 1,
+      "speed": 4,
+      "confidence": "unverified",
+      "notes": "Propuesto para docs en funycheck."
+    },
+    {
+      "id": "opencode/gpt-5.6-luna",
+      "harness": "opencode",
+      "model": "opencode-go/gpt-5.6-luna",
+      "family": "openai",
+      "reasoning": 3,
+      "coding": 3,
+      "vision": true,
+      "cost": 1,
+      "speed": 5,
+      "confidence": "assumed",
+      "notes": "El mismo gpt-5.6-luna de OpenAI, servido por el gateway opencode-go."
     }
   ]
 }

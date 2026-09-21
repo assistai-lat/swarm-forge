@@ -1,26 +1,26 @@
-# 🧬 Especificación Universal: Rosters Mixtos Multi-Proveedor
+# 🧬 Especificación Universal: Rosters Mixtos Multi-Harness
 
-> **Alcance: Modo B — Multi-Proveedor.** Esta especificación se suma a `PROTOCOL.md`, `ROLES.md` y `ARTIFACTS.md`; no los reemplaza. En el Modo A (un solo proveedor) no aplica y los modelos salen de [`ROSETTA_STONE.md`](../ROSETTA_STONE.md). Ver [`SWARM_MODES.md`](../SWARM_MODES.md).
+> **Alcance: Modo B — Multi-Harness (varios CLIs).** Esta especificación se suma a `PROTOCOL.md`, `ROLES.md` y `ARTIFACTS.md`; no los reemplaza. En el Modo A (un solo CLI) los modelos salen de [`ROSETTA_STONE.md`](../ROSETTA_STONE.md). Ver [`SWARM_MODES.md`](../SWARM_MODES.md).
 
-> Un enjambre Swarm-Forge **no tiene por qué vivir dentro de un solo proveedor**. Cada rol puede correr en el harness y modelo que mejor cumpla sus requisitos: el Sentinel en Gemini Flash (visión barata), los workers en Claude Sonnet, los auditores en DeepSeek o Gemini Pro.
+> Un enjambre Swarm-Forge **no tiene por qué vivir dentro de un solo CLI**. Cada rol puede correr en el harness y modelo que mejor cumpla sus requisitos: el Sentinel en Gemini Flash (visión barata), los workers en Claude Sonnet, los auditores en DeepSeek o Gemini Pro.
 
 ---
 
 ## 1. Por qué mezclar proveedores
 
-La `ROSETTA_STONE.md` traduce los Tiers a **una columna por proveedor**: el enjambre entero es AGY, o entero Claude, o entero OpenCode. Eso deja fuera tres ventajas:
+La `ROSETTA_STONE.md` traduce los Tiers a **una columna por CLI**: el enjambre entero corre en AGY, o en Claude Code, o en OpenCode. Combinar CLIs añade tres ventajas:
 
-1. **Diversidad adversarial real.** La Ley de No-Auto-Aprobación prohíbe que un agente apruebe su propio código, pero un Reviewer del mismo modelo que el Worker comparte sus puntos ciegos: tiende a encontrar correcto lo que su familia habría escrito. Un juez de otra familia de modelos es un revisor independiente de verdad.
+1. **Diversidad adversarial siempre alcanzable.** La Ley de No-Auto-Aprobación prohíbe que un agente apruebe su propio código, pero un Reviewer del mismo modelo que el Worker comparte sus puntos ciegos: tiende a encontrar correcto lo que su familia habría escrito. Un juez de otra familia de modelos es un revisor independiente de verdad.
 2. **Costo por capacidad, no por marca.** Cada proveedor es fuerte y barato en cosas distintas. Un roster mixto usa el modelo más barato que cumple cada requisito.
 3. **Resiliencia.** Si un proveedor cae o agota la cuota, solo se reasignan los roles afectados.
 
 ---
 
-## 2. Ley de Diversidad Adversarial (6ª Ley, exclusiva del Modo B)
+## 2. Ley de Diversidad Adversarial (6ª Ley de [`PROTOCOL.md`](./PROTOCOL.md))
 
 > **Todo rol `judge` (Reviewers, Security, Contract Integrator, Challengers, Forensic y Victory Auditor) debe usar una familia de modelos distinta a la de los `writer` cuyo código evalúa, siempre que exista una alternativa disponible.**
 
-- Si no existe alternativa (roster mono-proveedor), el recomendador lo permite pero lo **declara como advertencia** en el roster y en el `ANALYSIS_REPORT.md` del Gate M0.
+- Si no existe alternativa (roster mono-familia), el recomendador lo permite pero lo **declara como advertencia** en el roster y en el `ANALYSIS_REPORT.md` del Gate M0.
 - El `victory-auditor` además prefiere una familia distinta a la del `orchestrator`, reforzando el principio de *Clean-room*.
 
 ---
@@ -87,9 +87,9 @@ Sin `--harness`, detecta automáticamente qué CLIs están instalados.
 
 ---
 
-## 5. Ejecución: ¿quién orquesta a agentes de proveedores distintos?
+## 5. Ejecución: ¿quién orquesta a agentes de CLIs distintos?
 
-Los subagentes nativos (`Task` de Claude Code, `invoke_subagent` de AGY) solo lanzan modelos de su propio proveedor. Un roster mixto necesita una **capa neutral** que controle varios CLIs a la vez. Swarm-Forge define dos:
+Los subagentes nativos (`Task` de Claude Code, `invoke_subagent` de AGY, `task` de OpenCode) solo pueden lanzar modelos de su propio CLI. Un roster mixto necesita una **capa neutral** que controle varios CLIs a la vez. Swarm-Forge define dos:
 
 | Capa | Cómo |
 |---|---|

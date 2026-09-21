@@ -1,10 +1,10 @@
-# 🐑 herdr — Adaptador para Enjambres Multi-Proveedor (Modo B)
+# 🐑 herdr — Adaptador para Enjambres Multi-Harness (Modo B)
 
 > **Estado:** Funcional en modo simulación (dry-run). Pendiente de validación end-to-end con `--apply`.
 >
-> Este adaptador es el **Modo B — Multi-Proveedor**. Si solo usas un proveedor, no lo necesitas: usa el adaptador de tu proveedor (Modo A). Comparativa en [`SWARM_MODES.md`](../../SWARM_MODES.md).
+> Este adaptador es el **Modo B — Multi-Harness**: varios CLIs de agentes en un mismo enjambre. Si trabajas con un solo CLI no lo necesitas (Modo A), aunque ese CLI mezcle modelos de varias familias, como OpenCode. Comparativa en [`SWARM_MODES.md`](../../SWARM_MODES.md).
 
-[herdr](https://github.com/ogulcancelik/herdr) es un multiplexor de terminal para agentes de código. Ejecuta los CLIs reales (Claude Code, AGY, OpenCode, Codex, Gemini CLI...) cada uno en su pane, detecta su estado (`idle`, `working`, `blocked`, `done`) y expone todo por CLI y socket API. Eso lo convierte en la **capa neutral** que un roster mixto necesita (ver [`spec/MIXED_ROSTER.md`](../../spec/MIXED_ROSTER.md)): los subagentes nativos de cada proveedor no pueden lanzar modelos de la competencia, herdr sí.
+[herdr](https://github.com/ogulcancelik/herdr) es un multiplexor de terminal para agentes de código. Ejecuta los CLIs reales (Claude Code, AGY, OpenCode, Codex, Gemini CLI...) cada uno en su pane, detecta su estado (`idle`, `working`, `blocked`, `done`) y expone todo por CLI y socket API. Eso lo convierte en la **capa neutral** que un roster mixto necesita (ver [`spec/MIXED_ROSTER.md`](../../spec/MIXED_ROSTER.md)): los subagentes nativos de cada CLI solo lanzan los modelos que ese CLI ofrece; herdr combina CLIs.
 
 ---
 
@@ -85,7 +85,7 @@ node providers/herdr/swarm-up.mjs --roster roster.json --phase 4 --apply
 El orchestrator (en cualquier harness) coordina al resto solo con la CLI de herdr y los artefactos en disco:
 
 ```bash
-# Fase 2: despacho paralelo a workers de proveedores distintos
+# Fase 2: despacho paralelo a workers en CLIs distintos
 herdr agent prompt worker_api "Lee DISPATCH.md (sección worker_api) y ejecuta tu misión. Al terminar escribe handoff.md." 
 herdr agent prompt worker_web "Lee DISPATCH.md (sección worker_web) y ejecuta tu misión. Al terminar escribe handoff.md."
 herdr agent wait worker_api --timeout 1800000
@@ -109,5 +109,5 @@ Reglas:
 ## Limitaciones conocidas
 
 - herdr en Windows está en beta.
-- El flag de modelo se asume `--model` para todos los harnesses del catálogo; verifica el de cada CLI nuevo.
+- El flag `--model` está verificado en `claude`, `agy`, `opencode` y `codex`; en `gemini` y otros CLIs, verifícalo antes de usarlos.
 - La comunicación entre agentes es texto sobre la terminal: los artefactos en disco siguen siendo la fuente de verdad, no la salida del pane.

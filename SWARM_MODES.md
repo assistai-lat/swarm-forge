@@ -1,36 +1,40 @@
-# 🧭 Modos de Enjambre: Mono-Proveedor vs. Multi-Proveedor
+# 🧭 Modos de Enjambre: Un Solo CLI vs. Varios CLIs
 
-Swarm-Forge ofrece **dos formas de ejecutar el mismo protocolo** (las 5 fases, los 12 roles, los Write-Locks y el Gate M0 son idénticos en ambas). Lo que cambia es **quién lanza a los agentes y de qué proveedor pueden ser sus modelos**.
+Swarm-Forge ofrece **dos formas de ejecutar el mismo protocolo** (las 5 fases, los 12 roles, los Write-Locks y el Gate M0 son idénticos en ambas). Lo que cambia es **qué programa lanza a los agentes**:
+
+- **Modo A — Mono-Harness:** un solo CLI de agentes (Claude Code, AGY, Codex u OpenCode) lanza a todo el equipo con sus subagentes nativos.
+- **Modo B — Multi-Harness:** varios CLIs distintos trabajan juntos, cada uno en su pane, coordinados con [herdr](https://github.com/ogulcancelik/herdr).
+
+> **Ojo: "un solo CLI" no siempre significa "un solo proveedor de modelos".** Claude Code y Codex solo ejecutan modelos de su empresa, pero OpenCode puede asignar a cada subagente un modelo de otra familia (GLM, Kimi, Grok, DeepSeek...), y AGY ofrece Gemini, Claude y gpt-oss. Si lo que buscas es **mezclar modelos**, primero mira si tu CLI ya lo permite. El Modo B solo hace falta para mezclar **CLIs**.
 
 ---
 
 ## Resumen en una tabla
 
-| | 🏠 **Modo A — Mono-Proveedor** | 🧬 **Modo B — Multi-Proveedor (herdr)** |
+| | 🏠 **Modo A — Mono-Harness** | 🧬 **Modo B — Multi-Harness (herdr)** |
 |---|---|---|
-| **Modelos** | Todos del mismo proveedor (solo Gemini, solo Claude, solo OpenAI o solo modelos abiertos) | Cada rol con el mejor modelo disponible de **cualquier** proveedor |
-| **Quién lanza los subagentes** | La herramienta nativa del harness (`Task` de Claude Code, `invoke_subagent` de AGY, `task` de OpenCode) | [herdr](https://github.com/ogulcancelik/herdr): cada agente es un CLI real en su propio pane |
-| **Aislamiento de Write-Locks** | Instrucción en el prompt / permisos del harness | Instrucción en el prompt **+ git worktree físico** por worker |
-| **Diversidad adversarial** | ❌ Los jueces comparten familia con los workers | ✅ Los jueces usan otra familia de modelos (6ª Ley) |
-| **Qué asigna los modelos** | [`ROSETTA_STONE.md`](./ROSETTA_STONE.md) (una columna por proveedor) | [`catalog/`](./catalog/) + [`tools/recommend-roster.mjs`](./tools/recommend-roster.mjs) → `roster.json` |
+| **Quién lanza los subagentes** | La herramienta nativa del CLI (`Task` de Claude Code, `invoke_subagent` de AGY, `task` de OpenCode...) | herdr: cada agente es un CLI real en su propio pane |
+| **Modelos posibles** | Los que ofrezca ese CLI: un solo proveedor (Claude Code, Codex) o varios (OpenCode, AGY) | Cualquier modelo de cualquier CLI instalado |
+| **Write-Locks** | Instrucción en el prompt + permisos del CLI (p. ej. `permission.edit` en OpenCode) | Instrucción en el prompt **+ git worktree físico** por worker |
+| **Diversidad adversarial (6ª Ley)** | Solo si el CLI ofrece modelos de varias familias | ✅ Siempre alcanzable con dos o más CLIs |
+| **Qué asigna los modelos** | [`ROSETTA_STONE.md`](./ROSETTA_STONE.md) (una columna por CLI) | [`catalog/`](./catalog/) + [`tools/recommend-roster.mjs`](./tools/recommend-roster.mjs) → `roster.json` |
 | **Especificación** | [`spec/`](./spec/) | [`spec/`](./spec/) + [`spec/MIXED_ROSTER.md`](./spec/MIXED_ROSTER.md) |
 | **Adaptador** | [`providers/antigravity`](./providers/antigravity/), [`claude-code`](./providers/claude-code/), [`codex`](./providers/codex/), [`opencode`](./providers/opencode/) | [`providers/herdr`](./providers/herdr/) |
-| **Requisitos** | Un solo CLI y una sola suscripción o API key | herdr + dos o más CLIs de agentes instalados |
-| **Complejidad** | Baja: un solo proceso, contexto compartido nativo | Media: varios procesos, coordinación por artefactos en disco |
+| **Requisitos** | Un solo CLI | herdr + dos o más CLIs de agentes instalados |
+| **Complejidad** | Baja: un proceso, subagentes nativos | Media: varios procesos, coordinación por artefactos en disco |
 
 ---
 
 ## ¿Cuál elijo?
 
-**Elige el Modo A (Mono-Proveedor) si:**
-- Solo tienes una suscripción o API key.
+**Elige el Modo A (Mono-Harness) si:**
+- Usas un solo CLI y te basta con los modelos que ofrece.
 - Buscas la configuración más simple, o la tarea es pequeña.
-- Tu harness ya ofrece subagentes nativos y te basta.
+- Usas OpenCode o AGY y quieres mezclar familias de modelos sin salir de ese CLI.
 
-**Elige el Modo B (Multi-Proveedor) si:**
-- Tienes acceso a varios proveedores (p. ej. Claude Code + Antigravity + OpenCode).
-- Quieres que el código lo revise un modelo **distinto** al que lo escribió.
-- Quieres optimizar el costo por rol (visión barata para el Sentinel, razonamiento fuerte solo para los auditores).
+**Elige el Modo B (Multi-Harness) si:**
+- Quieres combinar lo mejor de CLIs distintos (p. ej. workers en Claude Code, jueces en Codex o AGY).
+- Tu CLI principal solo ofrece modelos de una familia y quieres jueces independientes.
 - Quieres Write-Locks físicos con git worktrees.
 
 > Puedes empezar en el Modo A y pasar al B más adelante: los artefactos (`PROJECT.md`, `DISPATCH.md`, `handoff.md`, `GATE_STATUS.md`) son los mismos.
@@ -40,16 +44,16 @@ Swarm-Forge ofrece **dos formas de ejecutar el mismo protocolo** (las 5 fases, l
 ## 🏠 Modo A — Cómo funciona
 
 ```text
-  Humano ──► Sentinel (Claude Code)
-                 │  Task tool nativa
-                 ├──► Orchestrator (Claude Opus)
-                 ├──► Workers (Claude Sonnet)
-                 └──► Auditores (Claude Opus)      ← misma familia de modelos
+  Humano ──► Sentinel (un solo CLI, p. ej. OpenCode)
+                 │  subagentes nativos (task / Task / invoke_subagent)
+                 ├──► Orchestrator      (glm)
+                 ├──► Workers           (kimi, glm)
+                 └──► Auditores         (grok, deepseek)   ← otra familia, si el CLI lo permite
 ```
 
-1. Elige tu proveedor en [`providers/`](./providers/).
-2. Copia el `AGENTS.template.md` de tu topología como `AGENTS.md` o `CLAUDE.md`.
-3. Asigna los modelos con la columna de tu proveedor en [`ROSETTA_STONE.md`](./ROSETTA_STONE.md).
+1. Elige tu CLI en [`providers/`](./providers/).
+2. Copia el `AGENTS.template.md` de tu topología (o las plantillas del adaptador) a tu proyecto.
+3. Asigna los modelos con la columna de tu CLI en [`ROSETTA_STONE.md`](./ROSETTA_STONE.md). Si tu CLI ofrece varias familias, respeta la 6ª Ley: los jueces no deben usar la misma familia que los workers.
 
 ## 🧬 Modo B — Cómo funciona
 
@@ -59,8 +63,8 @@ Swarm-Forge ofrece **dos formas de ejecutar el mismo protocolo** (las 5 fases, l
                  ├──► pane: orchestrator      (opencode · deepseek)
                  ├──► worktree: worker_api    (claude · sonnet)
                  ├──► worktree: worker_web    (claude · sonnet)
-                 ├──► pane: forensic-auditor  (opencode · deepseek)   ← otra familia
-                 └──► pane: victory-auditor   (agy · gemini pro)      ← otra familia
+                 ├──► pane: forensic-auditor  (codex · gpt)        ← otro CLI y otra familia
+                 └──► pane: victory-auditor   (agy · gemini pro)   ← otro CLI y otra familia
 ```
 
 El enjambre se puede operar de tres maneras, de menor a mayor autonomía:
@@ -68,7 +72,7 @@ El enjambre se puede operar de tres maneras, de menor a mayor autonomía:
 | Nivel | Quién ejecuta los comandos `herdr` | Cómo |
 |---|---|---|
 | 1. Manual | Tú | Abres un agente por pane; la barra lateral de herdr te muestra quién trabaja 🟡, terminó 🔵 o espera 🔴. |
-| 2. Script | [`swarm-up.mjs`](./providers/herdr/swarm-up.mjs) | Levanta los agentes del `roster.json` por fase, cada uno con su modelo. |
+| 2. Script | [`swarm-up.mjs`](./providers/herdr/swarm-up.mjs) | Levanta los agentes del `roster.json` por fase, cada uno con su CLI y modelo. |
 | 3. **Agente-director** | Tu agente principal (el Sentinel) | Con el skill de herdr instalado, el agente con el que hablas lanza, instruye y espera a los demás agentes. Ver [`providers/herdr/SENTINEL_PROMPT.md`](./providers/herdr/SENTINEL_PROMPT.md). |
 
 La guía completa de instalación y operación está en [`providers/herdr/README.md`](./providers/herdr/README.md).

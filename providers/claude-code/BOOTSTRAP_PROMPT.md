@@ -17,9 +17,9 @@ Debes crear dentro de `providers/claude-code/` la implementación nativa y ópti
 1. **`CLAUDE.md` de Gobernanza:**
    - Define el comportamiento del equipo Swarm-Forge dentro de las convenciones de Claude Code.
    - Mapea los Tiers de Inteligencia a tus modelos nativos:
-     - Tier 1: **Claude 3.7 Sonnet con Extended Thinking** (`budget_tokens: 16000` o superior) para Arquitectos, Reviewers, Forensic y Victory Auditor.
-     - Tier 2: **Claude 3.7 Sonnet en modo estándar** para Workers de implementación y Challengers.
-     - Tier 3: **Claude 3.5 Haiku** para exploradores, búsqueda y lectura masiva de archivos.
+     - Tier 1: **Opus** (alias `opus`, con extended thinking alto) para Arquitectos, Reviewers, Forensic y Victory Auditor.
+     - Tier 2: **Sonnet** (alias `sonnet`) para Workers de implementación y Challengers.
+     - Tier 3: **Haiku** (alias `haiku`) para exploradores, búsqueda y lectura masiva de archivos. El Sentinel también va en Haiku (tiene visión).
 2. **Directorio `.claude/` y Configuración:**
    - Configura las opciones recomendadas de `settings.json` o hooks de Claude Code si aplican.
 3. **Plantillas para Sub-Tareas (`templates/`):**
