@@ -1,6 +1,6 @@
 # 🐑 herdr — Adaptador para Enjambres Multi-Harness (Modo B)
 
-> **Estado:** Probado en vivo con herdr 0.9: `agent start` / `prompt` / `read` con OpenCode y AGY, y `ask.mjs` de punta a punta con OpenCode. `swarm-up.mjs --apply` (lanzamiento por fases) sigue sin prueba real.
+> **Estado:** ✅ Probado en vivo con herdr 0.9: `swarm-up.mjs --apply` (pestañas, `--worktree`, `--auto`) con AGY y Claude Code, y `ask.mjs` de punta a punta con OpenCode y AGY (en paralelo). Pendiente solo Codex, por no estar instalado.
 >
 > Este adaptador es el **Modo B — Multi-Harness**: varios CLIs de agentes en un mismo enjambre. Si trabajas con un solo CLI no lo necesitas (Modo A), aunque ese CLI mezcle modelos de varias familias, como OpenCode. Comparativa en [`SWARM_MODES.md`](../../SWARM_MODES.md).
 
