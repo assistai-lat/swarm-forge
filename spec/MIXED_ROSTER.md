@@ -21,7 +21,8 @@ La `ROSETTA_STONE.md` traduce los Tiers a **una columna por CLI**: el enjambre e
 > **Todo rol `judge` (Reviewers, Security, Contract Integrator, Challengers, Forensic y Victory Auditor) debe usar una familia de modelos distinta a la de los `writer` cuyo código evalúa, siempre que exista una alternativa disponible.**
 
 - Si no existe alternativa (roster mono-familia), el recomendador lo permite pero lo **declara como advertencia** en el roster y en el `ANALYSIS_REPORT.md` del Gate M0.
-- El `victory-auditor` además prefiere una familia distinta a la del `orchestrator`, reforzando el principio de *Clean-room*.
+- El `victory-auditor` además usa una familia distinta a la del `orchestrator` cuando existe (principio de *Clean-room*); si no existe, se avisa.
+- Es una **restricción dura**, no una preferencia: un juez de la misma familia solo aparece cuando no queda ningún candidato de otra.
 
 ---
 
@@ -37,14 +38,15 @@ La asignación deja de ser "Tier → modelo del proveedor X" y pasa a ser **requ
 ### Restricciones duras (filtran candidatos)
 1. **Harness instalado:** solo se consideran modelos cuyo CLI está disponible.
 2. **Visión:** `sentinel` y workers de UI (`web`, `frontend`, `mobile`, `backoffice`...) solo aceptan modelos con `vision: true` **y** perfil no `unverified` (Imperativo Multimodal de la Rosetta Stone).
+3. **Familia de los jueces (6ª Ley):** un `judge` solo considera modelos de familias que no escribieron código. Si no queda ninguno, cae a la misma familia y lo avisa. El `victory-auditor` descarta además la familia del `orchestrator`, con el mismo fallback.
+
+> Antes la familia era una penalización (−4) y un modelo con mucho puntaje base la superaba: con `--profile quality`, Opus quedaba de juez de workers Sonnet habiendo Gemini, DeepSeek o GLM disponibles (SF-4). Lo cubren los tests de [`tools/recommend-roster.test.mjs`](../tools/recommend-roster.test.mjs); córrelos con `node --test` desde la raíz.
 
 ### Puntuación (ordena candidatos)
 ```
 score = Σ peso_rol[c] × capacidad_modelo[c]  −  costWeight(perfil) × cost  −  penalización(confidence)
-        − 8 si un judge usa el mismo modelo que un writer
-        − 4 si un judge usa la misma familia que un writer
+        − 8 si un judge usa el mismo modelo que un writer (solo posible en el fallback de misma familia)
         − 2.5 × N si un judge repite un modelo ya usado por N jueces anteriores
-        − 2 si el victory-auditor comparte familia con el orchestrator
 ```
 Los writers se asignan primero; los jueces después, conociendo ya qué familias escribieron el código. La penalización por repetición evita que todos los jueces colapsen en el único modelo de mayor puntaje (p. ej. siempre el mismo modelo de texto con `reasoning:5`): jueces idénticos comparten los mismos puntos ciegos entre sí, no solo con los workers.
 

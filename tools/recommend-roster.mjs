@@ -13,18 +13,16 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const CONFIDENCE_PENALTY = { verified: 0, assumed: 0.5, unverified: 1.5 };
-const SAME_FAMILY_AS_WRITER_PENALTY = 4;
 // Sin esto, todos los jueces caen en el único modelo de mayor puntaje (p. ej. siempre
 // deepseek-v4-pro en OpenCode): jueces idénticos comparten los mismos puntos ciegos entre
 // sí, no solo con los workers. Penaliza cada reuso para repartir entre los candidatos cercanos.
 const JUDGE_REPEAT_PENALTY = 2.5;
 const SAME_MODEL_AS_WRITER_PENALTY = 8;
-const SAME_FAMILY_AS_ORCHESTRATOR_PENALTY = 2;
 
 // Roles de infraestructura que una topología puede pedir con "infraRoles" (spec/ROLES.md #11-12).
 const INFRA_ROLES = ["dba", "devops"];
@@ -152,7 +150,7 @@ function pickBest(scored) {
   return scored[0];
 }
 
-function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile, excludeModels = [], excludeFamilies = [], maxCost }) {
+export function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile, excludeModels = [], excludeFamilies = [], maxCost }) {
   const costWeight = roleCatalog.profiles[profile]?.costWeight;
   if (costWeight === undefined) throw new Error(`Perfil desconocido: ${profile}`);
 
@@ -202,21 +200,34 @@ function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile, ex
       }
     }
 
-    const scored = candidates.map((model) => {
+    // 6ª Ley: la familia de un juez es una restricción dura, no una penalización. Una
+    // penalización la supera cualquier modelo con suficiente puntaje base (p. ej. Opus en
+    // el perfil quality). Solo si no queda ningún candidato de otra familia se cae a la
+    // misma, y entonces el aviso de "no hay alternativa" es cierto.
+    let pool = candidates;
+    let sameFamilyFallback = false;
+    if (requirement.kind === "judge") {
+      pool = candidates.filter((m) => !writerFamilies.has(m.family));
+      if (pool.length === 0) { pool = candidates; sameFamilyFallback = true; }
+      // Clean-room del victory-auditor: con el mismo criterio, otra familia que el orchestrator.
+      if (slot.template === "victory-auditor" && orchestrator) {
+        const clean = pool.filter((m) => m.family !== orchestrator.family);
+        if (clean.length) pool = clean;
+        else warnings.push(`${slot.id}: comparte familia con el orchestrator (${orchestrator.family}); no hay alternativa que respete también la 6ª Ley.`);
+      }
+    }
+
+    const scored = pool.map((model) => {
       let score = baseScore(model, requirement, costWeight);
       if (requirement.kind === "judge") {
         if (writerModels.has(model.id)) score -= SAME_MODEL_AS_WRITER_PENALTY;
-        else if (writerFamilies.has(model.family)) score -= SAME_FAMILY_AS_WRITER_PENALTY;
         score -= JUDGE_REPEAT_PENALTY * (judgeModelUses.get(model.id) ?? 0);
-      }
-      if (slot.template === "victory-auditor" && orchestrator?.family === model.family) {
-        score -= SAME_FAMILY_AS_ORCHESTRATOR_PENALTY;
       }
       return { model, score };
     });
 
     const { model, score } = pickBest(scored);
-    if (requirement.kind === "judge" && writerFamilies.has(model.family)) {
+    if (sameFamilyFallback) {
       warnings.push(`${slot.id}: juzga código escrito por su misma familia (${model.family}); no hay alternativa de otro proveedor.`);
     }
     if (model.confidence === "unverified") {
@@ -323,4 +334,5 @@ function main() {
   console.log(toMarkdown(roster));
 }
 
-main();
+// Importable desde los tests sin ejecutar la CLI.
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main();
