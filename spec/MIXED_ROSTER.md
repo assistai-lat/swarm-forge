@@ -86,6 +86,17 @@ node tools/recommend-roster.mjs --topology topology.json --profile balanced --ou
 ```
 Sin `--harness`, detecta automáticamente qué CLIs están instalados.
 
+**Vetar modelos** (por costo, calidad o política del cliente) sin editar el catálogo:
+
+| Flag | Efecto |
+|---|---|
+| `--exclude-harness codex,agy` | Descarta harnesses enteros, aunque estén instalados. |
+| `--exclude-model haiku,kimi-k3` | Descarta modelos por su `id` en [`catalog/models.json`](../catalog/models.json). |
+| `--exclude-family moonshot` | Descarta todos los modelos de una familia (`anthropic`, `google`, `deepseek`...). |
+| `--max-cost 3` | Descarta los modelos con `cost` mayor (escala 1-5 del catálogo). |
+
+Los filtros se aplican antes de puntuar y quedan registrados en `roster.json` (`excludeModels`, `excludeFamilies`, `maxCost`) para que el Gate M0 muestre qué se vetó. Si ningún modelo sobrevive, el recomendador falla y dice qué filtro lo dejó vacío. Recuerda que vetar familias reduce la diversidad adversarial: revisa las advertencias.
+
 ---
 
 ## 5. Ejecución: ¿quién orquesta a agentes de CLIs distintos?

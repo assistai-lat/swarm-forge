@@ -6,6 +6,7 @@
 // Uso:
 //   node tools/recommend-roster.mjs --topology topologies/03-omnichannel-quad/topology.json \
 //        [--harness claude,agy,opencode] [--profile budget|balanced|quality] [--out roster.json]
+//        [--exclude-harness codex] [--exclude-model id,id] [--exclude-family fam,fam] [--max-cost 1-5]
 //
 // Sin dependencias. Node >= 18.
 
@@ -25,9 +26,12 @@ const JUDGE_REPEAT_PENALTY = 2.5;
 const SAME_MODEL_AS_WRITER_PENALTY = 8;
 const SAME_FAMILY_AS_ORCHESTRATOR_PENALTY = 2;
 
+// Roles de infraestructura que una topología puede pedir con "infraRoles" (spec/ROLES.md #11-12).
+const INFRA_ROLES = ["dba", "devops"];
+
 const PHASE_BY_TEMPLATE = {
   sentinel: "all", orchestrator: "all", explorer: 0,
-  worker: 2, worker_ui: 2,
+  worker: 2, worker_ui: 2, dba: 2, devops: 2,
   challenger: 3, "code-reviewer": 3, "security-auditor": 3, "contract-integrator": 3, "forensic-auditor": 3,
   "victory-auditor": 4,
 };
@@ -67,6 +71,22 @@ function surfaceWriteLock(surface) {
   return { writeLock: paths, writeLockExclude: surface.exclude ?? [] };
 }
 
+// "infraRoles" admite el id suelto ("devops") o un objeto con frontera propia, con los mismos
+// campos que una superficie: { "role": "dba", "repo", "path"|"paths", "exclude", "verifyCommand" }.
+function infraSlot(entry) {
+  const spec = typeof entry === "string" ? { role: entry } : entry;
+  if (!INFRA_ROLES.includes(spec?.role)) {
+    throw new Error(`infraRoles desconocido en topology.json: ${JSON.stringify(entry)} (válidos: ${INFRA_ROLES.join(", ")})`);
+  }
+  return {
+    id: spec.role,
+    template: spec.role,
+    ...(spec.repo && { repo: spec.repo }),
+    ...surfaceWriteLock(spec),
+    verifyCommand: spec.verifyCommand,
+  };
+}
+
 function isUiSurface(surface, hints) {
   const haystack = `${surface.workerRole} ${surface.stack ?? ""}`.toLowerCase();
   return hints.some((h) => haystack.includes(h));
@@ -86,10 +106,13 @@ function expandRoles(topology, roleCatalog) {
       id: surface.workerRole ?? `worker_${surfaceKey}`,
       template: isUiSurface(surface, roleCatalog.uiStackHints) ? "worker_ui" : "worker",
       surface: surfaceKey,
+      ...(surface.repo && { repo: surface.repo }),
       ...surfaceWriteLock(surface),
       verifyCommand: surface.verifyCommand,
     });
   }
+
+  for (const entry of topology.infraRoles ?? []) slots.push(infraSlot(entry));
 
   slots.push({ id: "code-reviewer", template: "code-reviewer" });
   slots.push({ id: "security-auditor", template: "security-auditor" });
@@ -129,13 +152,24 @@ function pickBest(scored) {
   return scored[0];
 }
 
-function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile }) {
+function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile, excludeModels = [], excludeFamilies = [], maxCost }) {
   const costWeight = roleCatalog.profiles[profile]?.costWeight;
   if (costWeight === undefined) throw new Error(`Perfil desconocido: ${profile}`);
 
-  const models = modelCatalog.models.filter((m) => harnesses.includes(m.harness));
+  const excludedModels = new Set(excludeModels);
+  const excludedFamilies = new Set(excludeFamilies);
+  const models = modelCatalog.models.filter((m) =>
+    harnesses.includes(m.harness) &&
+    !excludedModels.has(m.id) &&
+    !excludedFamilies.has(m.family) &&
+    (maxCost === undefined || m.cost <= maxCost));
   const warnings = [];
-  if (models.length === 0) throw new Error(`Ningún modelo del catálogo usa los harnesses: ${harnesses.join(", ")}`);
+  if (models.length === 0) {
+    throw new Error(`Ningún modelo cumple los filtros (harnesses: ${harnesses.join(", ")}` +
+      (excludeModels.length ? `; excluidos ${excludeModels.join(", ")}` : "") +
+      (excludeFamilies.length ? `; familias excluidas ${excludeFamilies.join(", ")}` : "") +
+      (maxCost !== undefined ? `; cost <= ${maxCost}` : "") + ").");
+  }
 
   const slots = expandRoles(topology, roleCatalog);
   const assignments = new Map();
@@ -205,12 +239,13 @@ function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile }) 
       modelId: model.id,
       family: model.family,
       score: Math.round(score * 10) / 10,
-      ...(slot.surface && {
-        surface: slot.surface,
+      ...(slot.surface && { surface: slot.surface }),
+      ...(slot.repo && { repo: slot.repo }),
+      ...(slot.writeLock?.length && {
         writeLock: slot.writeLock,
         ...(slot.writeLockExclude.length && { writeLockExclude: slot.writeLockExclude }),
-        verifyCommand: slot.verifyCommand,
       }),
+      ...(slot.verifyCommand && { verifyCommand: slot.verifyCommand }),
     });
   }
 
@@ -243,7 +278,8 @@ function toMarkdown(roster) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || !args.topology) {
-    console.log("Uso: node tools/recommend-roster.mjs --topology <topology.json> [--harness claude,agy,opencode] [--profile budget|balanced|quality] [--out roster.json]");
+    console.log("Uso: node tools/recommend-roster.mjs --topology <topology.json> [--harness claude,agy,opencode] [--exclude-harness h,h]" +
+      " [--profile budget|balanced|quality] [--exclude-model id,id] [--exclude-family fam,fam] [--max-cost 1-5] [--out roster.json]");
     process.exit(args.help ? 0 : 2);
   }
 
@@ -251,16 +287,31 @@ function main() {
   const roleCatalog = readJson(join(ROOT, "catalog", "roles.json"));
   const topology = readJson(resolve(args.topology));
 
-  const harnesses = args.harness
+  const excludeHarnesses = args["exclude-harness"] ? args["exclude-harness"].split(",").map((s) => s.trim()) : [];
+  const harnesses = (args.harness
     ? args.harness.split(",").map((h) => h.trim())
-    : Object.keys(modelCatalog.harnesses).filter(isInstalled);
+    : Object.keys(modelCatalog.harnesses).filter(isInstalled))
+    .filter((h) => !excludeHarnesses.includes(h));
+  const excludeModels = args["exclude-model"] ? args["exclude-model"].split(",").map((s) => s.trim()) : [];
+  const excludeFamilies = args["exclude-family"] ? args["exclude-family"].split(",").map((s) => s.trim()) : [];
+  const maxCost = args["max-cost"] !== undefined ? Number(args["max-cost"]) : undefined;
+  if (Number.isNaN(maxCost)) {
+    console.error(`--max-cost debe ser un número (1-5): ${args["max-cost"]}`);
+    process.exit(2);
+  }
 
-  const { agents, warnings } = recommend({ topology, modelCatalog, roleCatalog, harnesses, profile: args.profile });
+  const { agents, warnings } = recommend({
+    topology, modelCatalog, roleCatalog, harnesses, profile: args.profile,
+    excludeModels, excludeFamilies, maxCost,
+  });
   const roster = {
     $schema: "https://swarm-forge.org/schemas/roster.v1.json",
     topology: topology.name,
     profile: args.profile,
     harnesses,
+    ...(excludeModels.length && { excludeModels }),
+    ...(excludeFamilies.length && { excludeFamilies }),
+    ...(maxCost !== undefined && { maxCost }),
     agents,
     warnings,
   };

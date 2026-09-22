@@ -50,5 +50,6 @@
     "challenger_auth_flows",
     "challenger_double_submit",
     "challenger_hostile_uploads"
-  ]
+  ],
+  "infraRoles": ["devops"]
 }

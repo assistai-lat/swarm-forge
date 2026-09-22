@@ -7,6 +7,7 @@
 //   node providers/herdr/swarm-up.mjs --roster roster.json --phase 0            # simulación
 //   node providers/herdr/swarm-up.mjs --roster roster.json --phase 2 --worktree --auto --apply
 //   node providers/herdr/swarm-up.mjs --roster roster.json --roles code-reviewer,forensic-auditor --apply
+//   node providers/herdr/swarm-up.mjs --roster roster.json --phase 2 --worktree --base origin/main --apply
 //
 // Por defecto es un DRY-RUN: imprime los comandos herdr sin ejecutarlos.
 // --auto lanza cada CLI en modo autónomo (sin diálogos de permisos; ver spec/AUTONOMY.md).
@@ -56,13 +57,33 @@ function firstPaneOf(workspaceId, tabId, opts) {
   return panes[0].pane_id;
 }
 
+// Carpeta de trabajo del agente: su repo si declara "repo" (polyrepo, ver spec/TOPOLOGIES.md);
+// si no, la raíz de la topología.
+function homeDir(agent, args) {
+  return agent.repo ? resolve(args.cwd, agent.repo) : args.cwd;
+}
+
+// Se comprueba también en dry-run: es de solo lectura y avisa antes de lanzar nada.
+function assertGitRepo(dir, agent) {
+  const run = spawnSync("git", ["-C", dir, "rev-parse", "--show-toplevel"], { encoding: "utf8" });
+  if (run.status !== 0) {
+    throw new Error(`${dir} no es un repositorio git: no se puede crear el worktree de ${agent.role}. ` +
+      'Declara "repo" en su superficie o en infraRoles (spec/TOPOLOGIES.md), o lánzalo sin --worktree.');
+  }
+}
+
 // Crea el lugar donde vivirá el agente y devuelve su pane ID.
 function createHome(agent, args, opts) {
   if (args.worktree && agent.kind === "writer") {
+    // El worktree se crea DESDE el repo del agente, no desde la raíz de la topología
+    // (que en un polyrepo ni siquiera es un repo git).
+    const worktreeCwd = homeDir(agent, args);
+    assertGitRepo(worktreeCwd, agent);
     const created = herdr(["worktree", "create",
       "--branch", `swarm/${agent.herdrName}`,
+      ...(args.base ? ["--base", args.base] : []),
       "--label", agent.herdrName,
-      "--cwd", args.cwd,
+      "--cwd", worktreeCwd,
       "--no-focus"], opts);
     if (!opts.apply) return "<pane-del-worktree>";
     return firstPaneOf(created.result.workspace.workspace_id, null, opts);
@@ -70,7 +91,7 @@ function createHome(agent, args, opts) {
   const created = herdr(["tab", "create",
     "--workspace", args.workspace,
     "--label", agent.herdrName,
-    "--cwd", args.cwd,
+    "--cwd", homeDir(agent, args),
     "--no-focus"], opts);
   if (!opts.apply) return "<pane-de-la-pestaña>";
   return created.result.root_pane?.pane_id
@@ -92,15 +113,28 @@ function startAgent(agent, paneId, opts) {
   }
 }
 
+// Los globs del roster son relativos a la raíz de la topología; un agente de polyrepo trabaja
+// dentro de su repo, así que se le dan relativos a él.
+function inRepo(agent, globs) {
+  const prefix = agent.repo ? `${agent.repo.replace(/\/+$/, "")}/` : "";
+  return globs.map((g) => (prefix && g.startsWith(prefix) ? g.slice(prefix.length) : g)).join(", ");
+}
+
 function briefFor(agent, roster) {
   const lines = [
     `Eres el agente \`${agent.role}\` (plantilla ${agent.template}, fase ${agent.phase}) del enjambre Swarm-Forge "${roster.topology}".`,
     `Tu modelo: ${agent.harness}/${agent.model}. El enjambre mezcla modelos de varios proveedores y no compartís contexto; coordínate solo a través de los artefactos (DISPATCH.md, handoff.md, GATE_STATUS.md).`,
   ];
+  if (agent.repo) {
+    lines.push(`Trabajas en el repositorio \`${agent.repo}\` (tu carpeta actual es su raíz o un worktree suyo); no toques otros repositorios.`);
+  }
   if (agent.writeLock) {
-    const excluded = agent.writeLockExclude?.length ? ` EXCEPTO ${agent.writeLockExclude.join(", ")}` : "";
-    lines.push(`Write-Lock EXCLUSIVO: ${agent.writeLock.join(", ")}${excluded}. Cualquier escritura fuera de estas rutas anula tu entrega.`);
-    lines.push(`Antes de entregar ejecuta: ${agent.verifyCommand} (código de salida 0).`);
+    const excluded = agent.writeLockExclude?.length ? ` EXCEPTO ${inRepo(agent, agent.writeLockExclude)}` : "";
+    lines.push(`Write-Lock EXCLUSIVO: ${inRepo(agent, agent.writeLock)}${excluded}. Cualquier escritura fuera de estas rutas anula tu entrega.`);
+  }
+  if (agent.verifyCommand) {
+    const where = agent.repo ? " desde la raíz de tu repositorio" : "";
+    lines.push(`Antes de entregar ejecuta${where}: ${agent.verifyCommand} (código de salida 0).`);
   }
   if (agent.kind === "judge") {
     lines.push("Eres un juez: nunca modificas código de producto. Emites veredicto PASS/FAIL con evidencia.");
@@ -126,7 +160,7 @@ function selectAgents(roster, args) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || !args.roster) {
-    console.log("Uso: node providers/herdr/swarm-up.mjs --roster roster.json [--phase 0|2|3|4 | --roles a,b] [--worktree] [--auto] [--no-brief] [--apply]");
+    console.log("Uso: node providers/herdr/swarm-up.mjs --roster roster.json [--phase 0|2|3|4 | --roles a,b] [--worktree [--base <ref>]] [--cwd <raíz>] [--auto] [--no-brief] [--apply]");
     process.exit(args.help ? 0 : 2);
   }
 

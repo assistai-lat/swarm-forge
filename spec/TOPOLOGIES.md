@@ -97,6 +97,52 @@ Cuando dos superficies viven **dentro del mismo repositorio** (p. ej. un monolit
 
 **Regla de disjunción:** una vez aplicados los `exclude`, ningún archivo puede quedar dentro de la frontera de dos workers. Los archivos que no pertenecen a ninguna superficie (p. ej. `package.json`) solo se tocan si el orchestrator los asigna explícitamente en el `DISPATCH.md` (normalmente a `devops`).
 
+### Superficies en repositorios independientes (`repo`)
+
+Un ecosistema puede vivir en varios repositorios git **sin una raíz común versionada** (p. ej. `crm/crm-backend/` y `crm/crm-frontend/`, cada uno con su propio `.git`, bajo una carpeta `crm/` que no lo es). Cada superficie declara entonces de qué repo es:
+
+```json
+"backend": {
+  "repo": "crm-backend",
+  "path": "crm-backend",
+  "stack": "node-express-prisma",
+  "language": "typescript",
+  "verifyCommand": "npx prisma generate && pnpm test",
+  "workerRole": "worker_backend"
+}
+```
+
+| Campo | Significado |
+|---|---|
+| `repo` | Carpeta, relativa a la raíz de la topología, que es **su propio repositorio git**. Si se omite, la superficie vive en el repo de la raíz (comportamiento de siempre; retrocompatible). |
+
+Efectos de declarar `repo`:
+- **[`tools/check-write-locks.mjs`](../tools/check-write-locks.mjs)** lista los cambios con `git -C <raíz>/<repo>` en vez de asumir que la raíz es el repo, y antepone `<repo>/` a cada ruta antes de compararla con `paths`/`exclude` (que siguen siendo relativos a la raíz de la topología, como en cualquier otra superficie). Ejecútalo desde la raíz de la topología o pásale `--root <raíz>`.
+- **[`providers/herdr/swarm-up.mjs`](../providers/herdr/swarm-up.mjs)** abre la pestaña del worker en `<raíz>/<repo>`, y con `--worktree` crea el worktree desde ese repo (con `--base <ref>` parte de esa rama, p. ej. `origin/main`). El worker queda en un checkout aislado de **ese** repo: el Write-Lock pasa a ser físico por partida doble (no puede escribir en el otro repo porque ni siquiera está en su checkout). Si un writer sin `repo` pide worktree y la raíz no es un repo git, el lanzador lo rechaza antes de crear nada.
+- **`verifyCommand` se ejecuta desde la raíz de su repo**, no desde la raíz de la topología: escribe `pnpm test`, no `pnpm --filter backend test`. El brief del worker se lo indica, junto con su Write-Lock ya expresado en rutas relativas a su repo.
+- Si **ninguna** superficie declara `repo`, nada cambia: es el mismo comportamiento mono-repo de siempre.
+
+### Roles de infraestructura (`infraRoles`)
+
+Los roles `dba` y `devops` ([`ROLES.md`](ROLES.md) #11-12) no pertenecen a una superficie: la topología los pide explícitamente y el recomendador los asigna en la fase 2, como writers.
+
+```json
+"infraRoles": [
+  "devops",
+  {
+    "role": "dba",
+    "repo": "crm-backend",
+    "paths": ["crm-backend/prisma/**"],
+    "verifyCommand": "npx prisma validate"
+  }
+]
+```
+
+- **Forma corta** (`"devops"`): el rol no tiene Write-Lock propio; cada `DISPATCH.md` le asigna qué archivos puede tocar (típicamente los huérfanos: `package.json`, `Dockerfile`, CI). `check-write-locks --role devops` no puede verificarlo y lo dice.
+- **Forma objeto**: acepta los mismos campos que una superficie (`repo`, `path`/`paths`, `exclude`, `verifyCommand`). Su frontera entra en la **regla de disjunción**: si el `dba` es dueño de `crm-backend/prisma/**`, la superficie backend debe excluirlo (`"exclude": ["crm-backend/prisma/**"]`).
+- **Polyrepo + `--worktree`:** un rol de infraestructura sin `repo` se lanzaría en la raíz, que no es un repo git; declárale `repo` o lánzalo sin `--worktree` (`--roles devops`).
+- Cuándo pedirlos: `dba` si el proyecto tiene migraciones o esquema (`prisma/`, `alembic/`, `migrations/`); `devops` si hay `Dockerfile`, CI o despliegue (Coolify, compose) que vayan a cambiar.
+
 ---
 
 ## 3. Principio de Despacho Topológico (*Topology-Aware Dispatch*)

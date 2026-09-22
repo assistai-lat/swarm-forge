@@ -96,6 +96,8 @@ node providers/herdr/swarm-up.mjs --roster roster.json --phase 4 --auto --apply
 - `sentinel` y `orchestrator` no se lanzan por defecto: el Sentinel es normalmente el agente con el que ya hablas en tu pane. Usa `--roles orchestrator` si quieres uno separado.
 - `--auto` lanza cada CLI en **modo autónomo** con su flag (`--permission-mode auto`, `--dangerously-skip-permissions`, `--auto`, `approval_policy=never`), para que el enjambre no se congele en diálogos de aprobación. Úsalo siempre con `--worktree` en la fase 2. Ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).
 - Cada agente recibe un brief corto con su rol, Write-Lock y `verifyCommand`; desactívalo con `--no-brief`.
+- **Polyrepo:** si la superficie declara `repo` ([`spec/TOPOLOGIES.md`](../../spec/TOPOLOGIES.md#superficies-en-repositorios-independientes-repo)), el agente se abre en ese repo y `--worktree` lo crea desde él. Lanza el script desde la raíz de la topología o pásale `--cwd <raíz>`. `--base origin/main` hace que cada worktree parta de esa rama en vez del `HEAD` actual. (Polyrepo y `--base` probados en dry-run; falta una corrida con `--apply`.)
+- **`extraArgs` por agente:** lo que pongas en `extraArgs` de un agente de `roster.json` se pasa a su CLI después de `--model`. Sirve, por ejemplo, para aislar sus MCPs (`--strict-mcp-config --mcp-config=<archivo>` en Claude Code, `--agent <rol>` en OpenCode); ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md#6-mcps-por-rol).
 - Si un agente arranca bloqueado (p. ej. el diálogo de confianza de carpeta del harness), el lanzador sigue con el resto y te lista cuáles revisar con `herdr agent read`.
 
 ---

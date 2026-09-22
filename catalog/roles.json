@@ -7,6 +7,8 @@
     "explorer":            { "kind": "utility", "visionRequired": false, "weights": { "reasoning": 0, "coding": 1, "speed": 3 }, "instances": 3 },
     "worker":              { "kind": "writer",  "visionRequired": false, "weights": { "reasoning": 1, "coding": 3, "speed": 1 } },
     "worker_ui":           { "kind": "writer",  "visionRequired": true,  "weights": { "reasoning": 1, "coding": 3, "speed": 1 } },
+    "dba":                 { "kind": "writer",  "visionRequired": false, "weights": { "reasoning": 3, "coding": 1, "speed": 0 } },
+    "devops":              { "kind": "writer",  "visionRequired": false, "weights": { "reasoning": 1, "coding": 2, "speed": 1 } },
     "challenger":          { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 2, "coding": 2, "speed": 1 } },
     "code-reviewer":       { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 3, "coding": 2, "speed": 0 } },
     "security-auditor":    { "kind": "judge",   "visionRequired": false, "weights": { "reasoning": 3, "coding": 1, "speed": 0 } },

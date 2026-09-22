@@ -42,5 +42,6 @@
   "requiredChallengers": [
     "challenger_cross_service_contracts",
     "challenger_queue_resilience"
-  ]
+  ],
+  "infraRoles": ["dba", "devops"]
 }
