@@ -122,6 +122,34 @@ Efectos de declarar `repo`:
 - **`verifyCommand` se ejecuta desde la raíz de su repo**, no desde la raíz de la topología: escribe `pnpm test`, no `pnpm --filter backend test`. El brief del worker se lo indica, junto con su Write-Lock ya expresado en rutas relativas a su repo.
 - Si **ninguna** superficie declara `repo`, nada cambia: es el mismo comportamiento mono-repo de siempre.
 
+#### Worktrees por superficie (`baseBranch`, `copyEnv`)
+
+| Campo | Significado |
+|---|---|
+| `baseBranch` | Rama de la que parte el worktree de esa superficie (p. ej. `develop` en tres repos y `dev` en otro). Gana sobre `--base`, que queda como valor por defecto para las superficies que no la declaran. |
+| `copyEnv` | `true` para copiar al worktree los `.env*` de la raíz del repo que le falten. No están versionados, así que sin esto el worktree nace sin ellos y el build o los tests fallan. `swarm-up` imprime los nombres copiados, nunca su contenido. Es opt-in: úsalo solo si esos `.env` no tienen secretos que el agente no deba ver (ver [`AUTONOMY.md`](AUTONOMY.md), salvaguarda 5). |
+
+**Dependencias:** cada worktree instala las suyas (`pnpm install --frozen-lockfile --prefer-offline`: con el store de pnpm es rápido). **No enlaces el `node_modules` del clon** (`mklink /J`, symlink): `prisma generate` escribe el cliente en `node_modules/.prisma`, y un cambio de schema en un worktree pisaría el cliente de Prisma de las demás sesiones. El brief de cada writer con worktree se lo recuerda.
+
+### Verificación independiente de la shell (`env` + `steps`)
+
+En Windows, los agentes de AGY y OpenCode ejecutan comandos en PowerShell y los de Claude Code en Git Bash. Un `verifyCommand` como `TZ=UTC NODE_ENV=development pnpm test` funciona en bash y falla en PowerShell: el mismo gate da resultados distintos según quién lo corra, y un juez no puede reproducir lo que verificó un worker. Para eso, la superficie declara el entorno y los pasos por separado:
+
+```json
+"api": {
+  "repo": "kasah-api",
+  "path": "kasah-api",
+  "env": { "TZ": "UTC", "NODE_ENV": "development" },
+  "steps": ["npx prisma generate", "pnpm run typecheck", "pnpm run build", "pnpm run test:cov:ci"],
+  "workerRole": "worker_api"
+}
+```
+
+- **[`tools/verify.mjs`](../tools/verify.mjs)** los ejecuta en orden con ese `env`, siempre con la shell del sistema (cmd en Windows, sh en el resto) y no con la del agente, y se detiene en el primer paso que falla: `node tools/verify.mjs --topology topology.json --surface api`, desde la raíz del repo o del worktree.
+- Si la superficie declara `env` o `steps`, `recommend-roster.mjs` pone ese comando (con rutas absolutas) como `verifyCommand` del agente en `roster.json`, así que el brief ya le pide al worker el gate neutral.
+- Sin `env` ni `steps`, `verifyCommand` sigue funcionando como siempre. `steps` reemplaza a los comandos encadenados con `&&`, como `npx prisma generate && pnpm build`.
+- Los roles de `infraRoles` declarados como objeto aceptan los mismos campos.
+
 ### Roles de infraestructura (`infraRoles`)
 
 Los roles `dba` y `devops` ([`ROLES.md`](ROLES.md) #11-12) no pertenecen a una superficie: la topología los pide explícitamente y el recomendador los asigna en la fase 2, como writers.
@@ -139,7 +167,7 @@ Los roles `dba` y `devops` ([`ROLES.md`](ROLES.md) #11-12) no pertenecen a una s
 ```
 
 - **Forma corta** (`"devops"`): el rol no tiene Write-Lock propio; cada `DISPATCH.md` le asigna qué archivos puede tocar (típicamente los huérfanos: `package.json`, `Dockerfile`, CI). `check-write-locks --role devops` no puede verificarlo y lo dice.
-- **Forma objeto**: acepta los mismos campos que una superficie (`repo`, `path`/`paths`, `exclude`, `verifyCommand`). Su frontera entra en la **regla de disjunción**: si el `dba` es dueño de `crm-backend/prisma/**`, la superficie backend debe excluirlo (`"exclude": ["crm-backend/prisma/**"]`).
+- **Forma objeto**: acepta los mismos campos que una superficie (`repo`, `path`/`paths`, `exclude`, `verifyCommand`, `env`/`steps`, `baseBranch`, `copyEnv`). Su frontera entra en la **regla de disjunción**: si el `dba` es dueño de `crm-backend/prisma/**`, la superficie backend debe excluirlo (`"exclude": ["crm-backend/prisma/**"]`).
 - **Polyrepo + `--worktree`:** un rol de infraestructura sin `repo` se lanzaría en la raíz, que no es un repo git; declárale `repo` o lánzalo sin `--worktree` (`--roles devops`).
 - Cuándo pedirlos: `dba` si el proyecto tiene migraciones o esquema (`prisma/`, `alembic/`, `migrations/`); `devops` si hay `Dockerfile`, CI o despliegue (Coolify, compose) que vayan a cambiar.
 

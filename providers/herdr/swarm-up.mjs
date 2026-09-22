@@ -12,9 +12,9 @@
 // Por defecto es un DRY-RUN: imprime los comandos herdr sin ejecutarlos.
 // --auto lanza cada CLI en modo autónomo (sin diálogos de permisos; ver spec/AUTONOMY.md).
 
-import { readFileSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 function parseArgs(argv) {
   const args = { apply: false, worktree: false, brief: true, auto: false };
@@ -63,13 +63,43 @@ function homeDir(agent, args) {
   return agent.repo ? resolve(args.cwd, agent.repo) : args.cwd;
 }
 
+function git(dir, args) {
+  return spawnSync("git", ["-C", dir, ...args], { encoding: "utf8" });
+}
+
 // Se comprueba también en dry-run: es de solo lectura y avisa antes de lanzar nada.
-function assertGitRepo(dir, agent) {
-  const run = spawnSync("git", ["-C", dir, "rev-parse", "--show-toplevel"], { encoding: "utf8" });
+// Devuelve la raíz del repo.
+function gitToplevel(dir, agent) {
+  const run = git(dir, ["rev-parse", "--show-toplevel"]);
   if (run.status !== 0) {
     throw new Error(`${dir} no es un repositorio git: no se puede crear el worktree de ${agent.role}. ` +
       'Declara "repo" en su superficie o en infraRoles (spec/TOPOLOGIES.md), o lánzalo sin --worktree.');
   }
+  return run.stdout.trim();
+}
+
+// Ruta del worktree de una rama, según git (no depende de dónde decida crearlo herdr).
+function worktreePathOf(repoDir, branch) {
+  const lines = git(repoDir, ["worktree", "list", "--porcelain"]).stdout.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i] === `branch refs/heads/${branch}`) {
+      for (let j = i; j >= 0; j--) if (lines[j].startsWith("worktree ")) return lines[j].slice("worktree ".length);
+    }
+  }
+  return null;
+}
+
+// "copyEnv": los .env* no están versionados, así que el worktree nace sin ellos y el build o los
+// tests fallan. Copia los de la raíz del repo que falten; nunca imprime su contenido.
+function copyEnvFiles(repoDir, worktreeDir, opts) {
+  const names = readdirSync(repoDir).filter((n) => n.startsWith(".env") && statSync(join(repoDir, n)).isFile());
+  if (!opts.apply) {
+    console.log(`  (copiaría al worktree los .env* de ${repoDir} que falten: ${names.join(", ") || "ninguno"})`);
+    return;
+  }
+  const copied = names.filter((n) => !existsSync(join(worktreeDir, n)));
+  for (const n of copied) copyFileSync(join(repoDir, n), join(worktreeDir, n));
+  console.log(`  .env* copiados al worktree: ${copied.join(", ") || "ninguno (ya estaban)"}`);
 }
 
 // Crea el lugar donde vivirá el agente y devuelve su pane ID.
@@ -78,13 +108,21 @@ function createHome(agent, args, opts) {
     // El worktree se crea DESDE el repo del agente, no desde la raíz de la topología
     // (que en un polyrepo ni siquiera es un repo git).
     const worktreeCwd = homeDir(agent, args);
-    assertGitRepo(worktreeCwd, agent);
+    const repoDir = gitToplevel(worktreeCwd, agent);
+    // La base de la superficie gana sobre --base: en un polyrepo cada repo puede partir de otra rama.
+    const base = agent.baseBranch ?? args.base;
+    const branch = `swarm/${agent.herdrName}`;
     const created = herdr(["worktree", "create",
-      "--branch", `swarm/${agent.herdrName}`,
-      ...(args.base ? ["--base", args.base] : []),
+      "--branch", branch,
+      ...(base ? ["--base", base] : []),
       "--label", agent.herdrName,
       "--cwd", worktreeCwd,
       "--no-focus"], opts);
+    if (agent.copyEnv) {
+      const worktreeDir = opts.apply ? worktreePathOf(repoDir, branch) : "<worktree>";
+      if (!worktreeDir) console.error(`  ⚠️ No encontré el worktree de ${branch}: copia los .env* a mano.`);
+      else copyEnvFiles(repoDir, worktreeDir, opts);
+    }
     if (!opts.apply) return "<pane-del-worktree>";
     return firstPaneOf(created.result.workspace.workspace_id, null, opts);
   }
@@ -120,7 +158,24 @@ function inRepo(agent, globs) {
   return globs.map((g) => (prefix && g.startsWith(prefix) ? g.slice(prefix.length) : g)).join(", ");
 }
 
-function briefFor(agent, roster) {
+// Qué espera cada rol antes de actuar. No todos reciben un DISPATCH: el orchestrator lo
+// redacta y los explorers trabajan en la fase 0, cuando todavía no existe.
+function waitFor(agent) {
+  if (agent.template === "orchestrator") {
+    return "Eres el orchestrator: el DISPATCH.md lo redactas tú, no lo esperas. No hagas nada hasta recibir la instrucción del Sentinel o del humano.";
+  }
+  if (agent.template === "sentinel") return "Eres el Sentinel: no hagas nada hasta que el humano te hable.";
+  if (agent.kind === "utility") {
+    return "Exploras en la fase 0, antes de que exista el DISPATCH.md: solo lees y reportas, no modificas archivos. No hagas nada hasta recibir tu encargo de exploración del orchestrator.";
+  }
+  if (agent.template === "victory-auditor") {
+    return "Entras al final (fase 4), en contexto limpio. No hagas nada hasta recibir del orchestrator el pedido de auditoría final.";
+  }
+  if (agent.kind === "judge") return "No hagas nada hasta recibir del orchestrator el pedido de revisión (fase 3).";
+  return "No hagas nada todavía: espera tu DISPATCH del orchestrator.";
+}
+
+function briefFor(agent, roster, inWorktree) {
   const lines = [
     `Eres el agente \`${agent.role}\` (plantilla ${agent.template}, fase ${agent.phase}) del enjambre Swarm-Forge "${roster.topology}".`,
     `Tu modelo: ${agent.harness}/${agent.model}. El enjambre mezcla modelos de varios proveedores y no compartís contexto; coordínate solo a través de los artefactos (DISPATCH.md, handoff.md, GATE_STATUS.md).`,
@@ -136,11 +191,14 @@ function briefFor(agent, roster) {
     const where = agent.repo ? " desde la raíz de tu repositorio" : "";
     lines.push(`Antes de entregar ejecuta${where}: ${agent.verifyCommand} (código de salida 0).`);
   }
+  if (inWorktree) {
+    lines.push("Tu worktree es nuevo: antes de verificar, instala las dependencias en él con el gestor del repo (p. ej. pnpm install --frozen-lockfile --prefer-offline). No enlaces el node_modules del clon: prisma generate y similares escriben ahí y pisarían a las otras sesiones.");
+  }
   if (agent.kind === "judge") {
     lines.push("Eres un juez: nunca modificas código de producto. Emites veredicto PASS/FAIL con evidencia.");
   }
   lines.push("Cada pedido que recibas indicará un archivo de respuesta: escribe ahí tu respuesta completa en Markdown, terminada en la marca que se te indique, en vez de responder solo en pantalla.");
-  lines.push("No hagas nada todavía: espera tu DISPATCH del orchestrator.");
+  lines.push(waitFor(agent));
   return lines.join(" ");
 }
 
@@ -187,7 +245,8 @@ function main() {
     try {
       const paneId = createHome(agent, args, opts);
       startAgent(agent, paneId, opts);
-      if (args.brief) herdr(["agent", "prompt", agent.herdrName, briefFor(agent, roster)], opts);
+      const inWorktree = args.worktree && agent.kind === "writer";
+      if (args.brief) herdr(["agent", "prompt", agent.herdrName, briefFor(agent, roster, inWorktree)], opts);
     } catch (error) {
       // Un agente bloqueado (p.ej. diálogo de confianza del harness) no debe tumbar al resto.
       console.error(`  ✗ ${error.message}`);
@@ -199,8 +258,10 @@ function main() {
     process.exitCode = 1;
   }
 
-  console.log("\nSiguiente: el orchestrator despacha trabajo con");
-  console.log('  herdr agent prompt <agente> "Lee DISPATCH.md y ejecuta tu misión" --wait --timeout 1800000');
+  // Por ask.mjs y no por `herdr agent prompt --wait`: con AGY y Codex el estado de herdr no es
+  // fiable, y la respuesta por archivo es el único canal válido (README, "Canal de respuesta por archivo").
+  console.log("\nSiguiente: el orchestrator despacha trabajo y recibe la respuesta por archivo con");
+  console.log('  node providers/herdr/ask.mjs <agente> "Lee DISPATCH.md y ejecuta tu misión" --timeout 1800000');
 }
 
 main();

@@ -93,7 +93,7 @@ Un agente autónomo usa sus herramientas MCP **sin preguntar**, igual que edita 
 
 | CLI | Mecanismo | Alcance |
 |---|---|---|
-| **Claude Code** | `--strict-mcp-config --mcp-config=<mcp-rol>.json`. Con `{"mcpServers": {}}` el agente queda con cero MCPs (verificado: 142 herramientas MCP heredadas sin el flag, ninguna con él). Usa la forma con `=`: `--mcp-config` acepta varios archivos y, separado por espacio, se traga el argumento siguiente como si fuera otro archivo. | Por sesión. |
+| **Claude Code** | `--strict-mcp-config --mcp-config=<mcp-rol>.json --no-chrome`. Con `{"mcpServers": {}}` el agente queda con cero MCPs. `--no-chrome` es imprescindible si está instalada la extensión Claude in Chrome: sus herramientas (`mcp__claude-in-chrome__*`: navegar, ejecutar JavaScript, subir archivos) no vienen de ningún archivo de configuración MCP y `--strict-mcp-config` no las quita. Verificado en vivo en herdr: 21 herramientas de Chrome con los dos primeros flags, 0 al añadir `--no-chrome`. Usa la forma con `=`: `--mcp-config` acepta varios archivos y, separado por espacio, se traga el siguiente argumento que no sea un flag. | Por sesión. |
 | **AGY** | `agy mcp disable <nombre>` antes de lanzar el enjambre y `agy mcp enable <nombre>` al terminar. No hay flag por sesión: la config es **solo global** (`~/.gemini/config/mcp_config.json`) y el cambio afecta también a tu sesión de AGY. | Global. |
 | **OpenCode** | En la definición del agente del rol, `"tools": { "<servidor>_*": false }`, y lánzalo con `--agent <rol>`. O desactiva el servidor en el `opencode.json` del proyecto con `"enabled": false`. Según la documentación de OpenCode; no verificado en vivo. | Por agente / por proyecto. |
 | **Codex** | `-c mcp_servers.<nombre>.enabled=false`. Según su referencia de configuración; no verificado en vivo (Codex no estaba instalado). | Por sesión. |
@@ -102,7 +102,7 @@ En el Modo B, los argumentos de Claude Code, OpenCode y Codex van en **`extraArg
 
 ```json
 { "role": "code-reviewer", "harness": "claude", "model": "opus",
-  "extraArgs": ["--strict-mcp-config", "--mcp-config=.swarm/mcp/none.json"] }
+  "extraArgs": ["--strict-mcp-config", "--mcp-config=.swarm/mcp/none.json", "--no-chrome"] }
 ```
 
 `recommend-roster.mjs` regenera `roster.json` desde cero: vuelve a aplicar estos ajustes cada vez que lo regeneres.

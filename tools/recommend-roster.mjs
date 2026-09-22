@@ -69,20 +69,33 @@ function surfaceWriteLock(surface) {
   return { writeLock: paths, writeLockExclude: surface.exclude ?? [] };
 }
 
+// Una superficie con `env` o `steps` se verifica con el runner neutral (tools/verify.mjs), que
+// da el mismo resultado desde bash y desde PowerShell; sin ellos, su verifyCommand va tal cual.
+function verifyCommandFor(surface, key, topologyFile) {
+  if (!surface.env && !surface.steps) return surface.verifyCommand;
+  const posix = (p) => p.replace(/\\/g, "/");
+  return `node "${posix(join(ROOT, "tools", "verify.mjs"))}" --topology "${posix(topologyFile ?? "topology.json")}" --surface ${key}`;
+}
+
+// Campos que la superficie le pasa al agente: repo, worktree (baseBranch, copyEnv), Write-Lock y verificación.
+function surfaceFields(surface, key, topologyFile) {
+  return {
+    ...(surface.repo && { repo: surface.repo }),
+    ...(surface.baseBranch && { baseBranch: surface.baseBranch }),
+    ...(surface.copyEnv && { copyEnv: true }),
+    ...surfaceWriteLock(surface),
+    verifyCommand: verifyCommandFor(surface, key, topologyFile),
+  };
+}
+
 // "infraRoles" admite el id suelto ("devops") o un objeto con frontera propia, con los mismos
-// campos que una superficie: { "role": "dba", "repo", "path"|"paths", "exclude", "verifyCommand" }.
-function infraSlot(entry) {
+// campos que una superficie: { "role": "dba", "repo", "path"|"paths", "exclude", "verifyCommand", ... }.
+function infraSlot(entry, topologyFile) {
   const spec = typeof entry === "string" ? { role: entry } : entry;
   if (!INFRA_ROLES.includes(spec?.role)) {
     throw new Error(`infraRoles desconocido en topology.json: ${JSON.stringify(entry)} (válidos: ${INFRA_ROLES.join(", ")})`);
   }
-  return {
-    id: spec.role,
-    template: spec.role,
-    ...(spec.repo && { repo: spec.repo }),
-    ...surfaceWriteLock(spec),
-    verifyCommand: spec.verifyCommand,
-  };
+  return { id: spec.role, template: spec.role, ...surfaceFields(spec, spec.role, topologyFile) };
 }
 
 function isUiSurface(surface, hints) {
@@ -91,7 +104,7 @@ function isUiSurface(surface, hints) {
 }
 
 // Expande la topología en la lista concreta de roles del enjambre.
-function expandRoles(topology, roleCatalog) {
+function expandRoles(topology, roleCatalog, topologyFile) {
   const slots = [
     { id: "sentinel", template: "sentinel" },
     { id: "orchestrator", template: "orchestrator" },
@@ -104,13 +117,11 @@ function expandRoles(topology, roleCatalog) {
       id: surface.workerRole ?? `worker_${surfaceKey}`,
       template: isUiSurface(surface, roleCatalog.uiStackHints) ? "worker_ui" : "worker",
       surface: surfaceKey,
-      ...(surface.repo && { repo: surface.repo }),
-      ...surfaceWriteLock(surface),
-      verifyCommand: surface.verifyCommand,
+      ...surfaceFields(surface, surfaceKey, topologyFile),
     });
   }
 
-  for (const entry of topology.infraRoles ?? []) slots.push(infraSlot(entry));
+  for (const entry of topology.infraRoles ?? []) slots.push(infraSlot(entry, topologyFile));
 
   slots.push({ id: "code-reviewer", template: "code-reviewer" });
   slots.push({ id: "security-auditor", template: "security-auditor" });
@@ -150,7 +161,7 @@ function pickBest(scored) {
   return scored[0];
 }
 
-export function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile, excludeModels = [], excludeFamilies = [], maxCost }) {
+export function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile, excludeModels = [], excludeFamilies = [], maxCost, topologyFile }) {
   const costWeight = roleCatalog.profiles[profile]?.costWeight;
   if (costWeight === undefined) throw new Error(`Perfil desconocido: ${profile}`);
 
@@ -169,7 +180,7 @@ export function recommend({ topology, modelCatalog, roleCatalog, harnesses, prof
       (maxCost !== undefined ? `; cost <= ${maxCost}` : "") + ").");
   }
 
-  const slots = expandRoles(topology, roleCatalog);
+  const slots = expandRoles(topology, roleCatalog, topologyFile);
   const assignments = new Map();
 
   // Orden de asignación: writers y coordinación primero, jueces después,
@@ -252,6 +263,8 @@ export function recommend({ topology, modelCatalog, roleCatalog, harnesses, prof
       score: Math.round(score * 10) / 10,
       ...(slot.surface && { surface: slot.surface }),
       ...(slot.repo && { repo: slot.repo }),
+      ...(slot.baseBranch && { baseBranch: slot.baseBranch }),
+      ...(slot.copyEnv && { copyEnv: true }),
       ...(slot.writeLock?.length && {
         writeLock: slot.writeLock,
         ...(slot.writeLockExclude.length && { writeLockExclude: slot.writeLockExclude }),
@@ -312,7 +325,7 @@ function main() {
   }
 
   const { agents, warnings } = recommend({
-    topology, modelCatalog, roleCatalog, harnesses, profile: args.profile,
+    topology, modelCatalog, roleCatalog, harnesses, profile: args.profile, topologyFile: resolve(args.topology),
     excludeModels, excludeFamilies, maxCost,
   });
   const roster = {

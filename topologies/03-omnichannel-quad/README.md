@@ -24,3 +24,7 @@ mi-ecosistema/
 - **`contract_integrator`:** Crucial. Sincroniza Swagger DTOs con modelos Dart (`freezed`) y tipos TypeScript.
 - **`challenger_backward_compat`:** **CRÍTICO.** Comprueba que los cambios en la API no rompan versiones desactualizadas de la app móvil en producción.
 - **`challenger_mobile_offline`:** Comprueba la resiliencia de la app móvil ante pérdida de señal y persistencia local.
+
+## Nota para Windows: Flutter y Smart App Control
+
+Con Smart App Control activo, Windows bloquea `dartvm.exe` (sin firma) y ningún comando `flutter` corre, ni siquiera en los panes de herdr: `worker_mobile` no podrá verificar. Comprueba `flutter --version` en un pane de herdr antes de la fase 2. Detalle y alternativas en [`providers/herdr/README.md`](../../providers/herdr/README.md#limitaciones-conocidas).
