@@ -57,7 +57,7 @@ function isInstalled(bin) {
 }
 
 // Nombres de agente herdr: [a-z][a-z0-9_-]{0,31}
-function herdrName(roleId) {
+export function herdrName(roleId) {
   let name = roleId.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
   if (name.length > 32) name = name.replace(/^challenger_/, "ch_");
   return name.slice(0, 32);
