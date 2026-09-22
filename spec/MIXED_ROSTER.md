@@ -43,9 +43,10 @@ La asignación deja de ser "Tier → modelo del proveedor X" y pasa a ser **requ
 score = Σ peso_rol[c] × capacidad_modelo[c]  −  costWeight(perfil) × cost  −  penalización(confidence)
         − 8 si un judge usa el mismo modelo que un writer
         − 4 si un judge usa la misma familia que un writer
+        − 2.5 × N si un judge repite un modelo ya usado por N jueces anteriores
         − 2 si el victory-auditor comparte familia con el orchestrator
 ```
-Los writers se asignan primero; los jueces después, conociendo ya qué familias escribieron el código.
+Los writers se asignan primero; los jueces después, conociendo ya qué familias escribieron el código. La penalización por repetición evita que todos los jueces colapsen en el único modelo de mayor puntaje (p. ej. siempre el mismo modelo de texto con `reasoning:5`): jueces idénticos comparten los mismos puntos ciegos entre sí, no solo con los workers.
 
 ### Confianza del catálogo
 Las capacidades de los modelos cambian cada pocos meses. Cada entrada declara `confidence`:

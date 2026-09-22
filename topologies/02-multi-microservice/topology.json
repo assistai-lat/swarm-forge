@@ -7,7 +7,7 @@
       "path": "daido-cloud-api",
       "stack": "nestjs-prisma",
       "language": "typescript",
-      "verifyCommand": "pnpm --filter daido-cloud-api run build",
+      "verifyCommand": "npx prisma generate --schema=daido-cloud-api/prisma/schema.prisma && pnpm --filter daido-cloud-api run build",
       "workerRole": "worker_core"
     },
     "web": {

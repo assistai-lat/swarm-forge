@@ -138,10 +138,11 @@ node providers/herdr/ask.mjs forensic-auditor "Audita git diff main...swarm/work
 ```
 
 Reglas:
-1. Nunca respondas por tu cuenta a un agente en `blocked`: lee su pantalla (`herdr agent read`) y escala al humano.
-2. Un `timeout` no prueba que el pedido no llegó: no reenvíes a ciegas.
-3. No cierres panes, pestañas ni worktrees que no creó el enjambre.
-4. El primer pedido enviado justo después de `agent start` se perdió una vez en nuestras pruebas (causa sin confirmar): si `ask.mjs` avisa que no vio actividad, revisa la pantalla antes de hacer nada.
+1. **Con AGY (y Codex): `ask.mjs` es el ÚNICO canal válido, nunca `herdr agent wait` ni el `agent_status`.** Sus integraciones de herdr solo registran la sesión, no el ciclo de vida (ver [Qué informa cada integración](#qué-informa-cada-integración)): un AGY `blocked` esperando aprobación puede aparecer como `done`, y uno `working` como `idle`. Confiar en el estado ahí produce despachos duplicados o respuestas dadas por perdidas sin estarlo.
+2. Nunca respondas por tu cuenta a un agente en `blocked`: lee su pantalla (`herdr agent read`) y escala al humano.
+3. Un `timeout` no prueba que el pedido no llegó: no reenvíes a ciegas.
+4. No cierres panes, pestañas ni worktrees que no creó el enjambre.
+5. El primer pedido enviado justo después de `agent start` se perdió una vez en nuestras pruebas (causa sin confirmar): si `ask.mjs` avisa que no vio actividad, revisa la pantalla antes de hacer nada.
 
 ---
 

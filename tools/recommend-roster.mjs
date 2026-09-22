@@ -18,6 +18,10 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const CONFIDENCE_PENALTY = { verified: 0, assumed: 0.5, unverified: 1.5 };
 const SAME_FAMILY_AS_WRITER_PENALTY = 4;
+// Sin esto, todos los jueces caen en el único modelo de mayor puntaje (p. ej. siempre
+// deepseek-v4-pro en OpenCode): jueces idénticos comparten los mismos puntos ciegos entre
+// sí, no solo con los workers. Penaliza cada reuso para repartir entre los candidatos cercanos.
+const JUDGE_REPEAT_PENALTY = 2.5;
 const SAME_MODEL_AS_WRITER_PENALTY = 8;
 const SAME_FAMILY_AS_ORCHESTRATOR_PENALTY = 2;
 
@@ -43,8 +47,11 @@ function readJson(path) {
 }
 
 function isInstalled(bin) {
-  const finder = process.platform === "win32" ? "where" : "which";
-  return spawnSync(finder, [bin], { stdio: "ignore" }).status === 0;
+  if (process.platform !== "win32") return spawnSync("which", [bin], { stdio: "ignore" }).status === 0;
+  // `where <bin>` sin extensión solo resuelve vía PATHEXT (.COM/.EXE/.BAT/.CMD por defecto).
+  // Un CLI instalado solo como <bin>.ps1 (sin shim .cmd/.exe) no aparece ahí, pero
+  // `where <bin>.ps1` sí lo encuentra por nombre exacto.
+  return [bin, `${bin}.ps1`].some((candidate) => spawnSync("where", [candidate], { stdio: "ignore" }).status === 0);
 }
 
 // Nombres de agente herdr: [a-z][a-z0-9_-]{0,31}
@@ -154,11 +161,19 @@ function recommend({ topology, modelCatalog, roleCatalog, harnesses, profile }) 
     const writerModels = new Set(writers.map((a) => a.modelId));
     const orchestrator = assignments.get("orchestrator");
 
+    const judgeModelUses = new Map();
+    for (const a of assignments.values()) {
+      if (roleCatalog.roles[a.template].kind === "judge") {
+        judgeModelUses.set(a.modelId, (judgeModelUses.get(a.modelId) ?? 0) + 1);
+      }
+    }
+
     const scored = candidates.map((model) => {
       let score = baseScore(model, requirement, costWeight);
       if (requirement.kind === "judge") {
         if (writerModels.has(model.id)) score -= SAME_MODEL_AS_WRITER_PENALTY;
         else if (writerFamilies.has(model.family)) score -= SAME_FAMILY_AS_WRITER_PENALTY;
+        score -= JUDGE_REPEAT_PENALTY * (judgeModelUses.get(model.id) ?? 0);
       }
       if (slot.template === "victory-auditor" && orchestrator?.family === model.family) {
         score -= SAME_FAMILY_AS_ORCHESTRATOR_PENALTY;

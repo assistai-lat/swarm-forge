@@ -7,7 +7,7 @@
       "path": "backend",
       "stack": "node-express-prisma",
       "language": "typescript",
-      "verifyCommand": "pnpm --filter backend run build",
+      "verifyCommand": "npx prisma generate && pnpm --filter backend run build",
       "workerRole": "worker_backend"
     },
     "frontend": {

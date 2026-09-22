@@ -339,6 +339,45 @@
       "speed": 5,
       "confidence": "assumed",
       "notes": "El mismo gpt-5.6-luna de OpenAI, servido por el gateway opencode-go."
+    },
+    {
+      "id": "opencode/deepseek-v4-flash",
+      "harness": "opencode",
+      "model": "opencode-go/deepseek-v4-flash",
+      "family": "deepseek",
+      "reasoning": 4,
+      "coding": 3,
+      "vision": false,
+      "cost": 1,
+      "speed": 4,
+      "confidence": "unverified",
+      "notes": "Hermano rápido/barato de deepseek-v4-pro, solo texto."
+    },
+    {
+      "id": "opencode/kimi-k3",
+      "harness": "opencode",
+      "model": "opencode-go/kimi-k3",
+      "family": "moonshot",
+      "reasoning": 4,
+      "coding": 4,
+      "vision": false,
+      "cost": 2,
+      "speed": 3,
+      "confidence": "unverified",
+      "notes": "Sucesor de kimi-k2.7-code en el catálogo opencode-go."
+    },
+    {
+      "id": "opencode/qwen3.8-flash",
+      "harness": "opencode",
+      "model": "opencode-go/qwen3.8-flash",
+      "family": "qwen",
+      "reasoning": 2,
+      "coding": 3,
+      "vision": false,
+      "cost": 1,
+      "speed": 5,
+      "confidence": "unverified",
+      "notes": "Variante rápida/barata de qwen3.8-max."
     }
   ]
 }

@@ -7,7 +7,7 @@
       "path": "pasajeya-api",
       "stack": "nestjs-prisma",
       "language": "typescript",
-      "verifyCommand": "pnpm --filter pasajeya-api run build",
+      "verifyCommand": "npx prisma generate --schema=pasajeya-api/prisma/schema.prisma && pnpm --filter pasajeya-api run build",
       "workerRole": "worker_api"
     },
     "web": {
