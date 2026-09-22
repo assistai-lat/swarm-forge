@@ -361,10 +361,10 @@
       "reasoning": 4,
       "coding": 4,
       "vision": false,
-      "cost": 2,
+      "cost": 4,
       "speed": 3,
       "confidence": "unverified",
-      "notes": "Sucesor de kimi-k2.7-code en el catálogo opencode-go."
+      "notes": "Sucesor de kimi-k2.7-code en el catálogo opencode-go. Costoso (cost 4): reportado en las adopciones de CRM y Kasah."
     },
     {
       "id": "opencode/qwen3.8-flash",
@@ -378,6 +378,71 @@
       "speed": 5,
       "confidence": "unverified",
       "notes": "Variante rápida/barata de qwen3.8-max."
+    },
+    {
+      "id": "opencode/deepseek-v4.1-flash",
+      "harness": "opencode",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "family": "deepseek",
+      "reasoning": 4,
+      "coding": 3,
+      "vision": false,
+      "cost": 1,
+      "speed": 4,
+      "confidence": "unverified",
+      "notes": "Sucesor de deepseek-v4-flash; capacidades copiadas de él hasta probarlo."
+    },
+    {
+      "id": "opencode/grok-4.7",
+      "harness": "opencode",
+      "model": "opencode-go/grok-4.7",
+      "family": "xai",
+      "reasoning": 4,
+      "coding": 4,
+      "vision": false,
+      "cost": 2,
+      "speed": 3,
+      "confidence": "unverified",
+      "notes": "Sucesor de grok-4.6; capacidades copiadas de él hasta probarlo."
+    },
+    {
+      "id": "opencode/mimo-v2.6-pro",
+      "harness": "opencode",
+      "model": "opencode-go/mimo-v2.6-pro",
+      "family": "xiaomi",
+      "reasoning": 4,
+      "coding": 4,
+      "vision": false,
+      "cost": 2,
+      "speed": 3,
+      "confidence": "unverified",
+      "notes": "Familia nueva en el catálogo: suma diversidad para jueces."
+    },
+    {
+      "id": "opencode/mimo-v2.6-flash",
+      "harness": "opencode",
+      "model": "opencode-go/mimo-v2.6-flash",
+      "family": "xiaomi",
+      "reasoning": 2,
+      "coding": 3,
+      "vision": false,
+      "cost": 1,
+      "speed": 5,
+      "confidence": "unverified",
+      "notes": "Variante rápida/barata de mimo-v2.6-pro."
+    },
+    {
+      "id": "opencode/longcat-2.0",
+      "harness": "opencode",
+      "model": "opencode-go/longcat-2.0",
+      "family": "meituan",
+      "reasoning": 4,
+      "coding": 3,
+      "vision": false,
+      "cost": 2,
+      "speed": 3,
+      "confidence": "unverified",
+      "notes": "Familia nueva en el catálogo: suma diversidad para jueces."
     }
   ]
 }
