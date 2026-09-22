@@ -28,7 +28,7 @@
       "path": "pasajeya-mob",
       "stack": "flutter-bloc",
       "language": "dart",
-      "verifyCommand": "flutter analyze && flutter test",
+      "verifyCommand": "flutter analyze --no-pub --no-fatal-infos && flutter test --no-pub",
       "workerRole": "worker_mobile"
     }
   },

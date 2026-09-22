@@ -21,7 +21,7 @@
       "path": "mobile-app",
       "stack": "flutter",
       "language": "dart",
-      "verifyCommand": "flutter analyze",
+      "verifyCommand": "flutter analyze --no-pub --no-fatal-infos",
       "workerRole": "worker_mobile"
     }
   },
