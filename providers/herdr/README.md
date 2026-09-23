@@ -81,7 +81,9 @@ Los comandos asumen que estás en la raíz de este repositorio. Desde otro proye
 # 1. Genera el roster mixto con los CLIs que tengas instalados
 node tools/recommend-roster.mjs --topology topology.json --profile balanced --out roster.json
 
-# 2. Revisa la tabla y las advertencias; ajusta roster.json a mano si quieres
+# 2. Revisa la tabla y las advertencias; ajusta interactivamente o aplica presets con team.mjs
+node tools/team.mjs --list
+# (opcional: node tools/team.mjs --preset duo, o hot-swap de emergencia: node tools/team.mjs --emergency-to agy)
 
 # 3. Desde un pane de herdr, simula y luego lanza por fases
 node providers/herdr/swarm-up.mjs --roster roster.json --phase 0            # dry-run: exploradores

@@ -115,3 +115,40 @@ Los subagentes nativos (`Task` de Claude Code, `invoke_subagent` de AGY, `task` 
 ## 6. Integración con Topology Drift
 
 Cuando `TOPOLOGY_DRIFT.md` detecta una nueva superficie o un cambio de harnesses disponibles, el `orchestrator` debe **regenerar `roster.json`** y reportar en el Gate M0 las reasignaciones y advertencias de diversidad.
+
+---
+
+## 7. Cockpit Humano, Golden Presets y Hot-Swap de Emergencia (`tools/team.mjs`)
+
+Mientras que `recommend-roster.mjs` optimiza algorítmicamente el roster ponderando capacidades vs. costo, la operación práctica en producción introduce dos necesidades operativas:
+1. **Curaduría de Modelos y Control de Tokens:** Evitar modelos con gasto desproporcionado (como Grok) o priorizar combinaciones de máxima solidez probadas en campo.
+2. **Contingencias en Caliente (Hot-Swap):** Si un proveedor cae o agota su cuota de API a mitad de un sprint, migrar roles en segundos sin editar manualmente cientos de líneas de JSON ni romper esquemas, topologías o Write-Locks.
+
+Swarm-Forge aborda esto con [`tools/team.mjs`](../tools/team.mjs):
+
+### A. Cockpit Interactivo y Niveles de Esfuerzo
+Al ejecutar `node tools/team.mjs`:
+- El equipo se visualiza ordenado `[1..N]` con badges de esfuerzo inferido (`High (Deep)`, `Medium`, `Low (Fast)`).
+- Permite seleccionar cualquier rol por número para alterar su nivel de esfuerzo / thinking, cambiar su proveedor conservando las salvaguardas o ingresar un modelo personalizado.
+
+### B. Catálogo de Golden Presets (`--preset <nombre>`)
+Alineaciones preconfiguradas y probadas en sprints reales:
+* **`duo` / `claude,agy`:** Dúo Elite. Claude Opus en Workers y Sentinel, Claude Sonnet en Fase 3 y jueces, AGY Gemini 3.1 Pro en auditoría/orquestación. Cero Haiku, cero OpenCode.
+* **`solo-claude`:** 100% Anthropic. Claude Opus en Workers y Sentinel, Claude Sonnet en Fase 3 y Exploración.
+* **`solo-agy` / `gemini`:** 100% Google Gemini (Flash High / Pro High). Visión multimodal nativa en Sentinel, contexto de 1M, cero consumo de APIs externas de pago.
+* **`solo-opencode` / `open-weights`:** Modelos abiertos de vanguardia (Kimi 2.7 backend, Qwen 3.6 frontend con visión, GLM 5.3 orquestación, DeepSeek v4 Pro revisión/seguridad, exploradores gratuitos nemotron/mimo). Cero Grok.
+* **`mixed` / `agy,opencode`:** Combinación equilibrada de Google Gemini y modelos abiertos favoritos.
+* **`trio` / `claude,agy,opencode`:** Trío Soberano. Claude Opus en backend, Qwen 3.6 en frontend, Sonnet en revisión Fase 3, Gemini Pro en auditoría.
+
+### C. Botón de Emergencia (`--emergency-to <harness>`) y Restauración (`--restore`)
+Ante una interrupción de servicio o agotamiento de saldo de un proveedor externo:
+```bash
+node tools/team.mjs --emergency-to agy
+```
+1. Genera automáticamente un respaldo del roster actual en `roster.last-mixed.json`.
+2. Migra los agentes externos al harness especificado (`agy`, `claude`, `opencode`) preservando intactos sus `writeLock`, `writeLockExclude`, `verifyCommand`, `repo` y `baseBranch`.
+3. Una vez superada la contingencia:
+```bash
+node tools/team.mjs --restore
+```
+Restaura el roster original desde el archivo de backup en un solo paso.

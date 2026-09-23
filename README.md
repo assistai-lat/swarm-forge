@@ -57,7 +57,7 @@ swarm-forge/
 ├── ROSETTA_STONE.md    # 🗿 [Modo A] Mapeo de modelos, thinking y herramientas por CLI
 │
 ├── catalog/            # 🧬 [Modo B] Capacidades de modelos y requisitos por rol
-├── tools/              # ⚙️ recommend-roster.mjs [Modo B] y check-write-locks.mjs [ambos modos]
+├── tools/              # ⚙️ team.mjs (cockpit/presets), recommend-roster.mjs y check-write-locks.mjs
 │
 ├── topologies/         # 🎯 STARTER KITS DE TOPOLOGÍAS (Listos para copiar a cualquier proyecto)
 │   ├── 01-dual-surface/        # Chronus style: Backend API + Web SPA
@@ -160,6 +160,30 @@ node providers/herdr/swarm-up.mjs --roster roster.json --phase 0 --apply
 Puedes operarlo a mano, con el script, o dejar que tu agente principal dirija al resto (**Agente-Director**, [`SENTINEL_PROMPT.md`](./providers/herdr/SENTINEL_PROMPT.md)). En todos los casos, los agentes responden en archivos `.md` con marca de fin, no en la pantalla ([`ask.mjs`](./providers/herdr/ask.mjs)).
 
 Especificación en [`spec/MIXED_ROSTER.md`](./spec/MIXED_ROSTER.md); instalación y operación en [`providers/herdr/`](./providers/herdr/).
+
+### 🎛️ Cockpit de Gestión de Equipo y Hot-Swap (`tools/team.mjs`)
+
+Además del recomendador algorítmico, Swarm-Forge incluye `tools/team.mjs`, un cockpit interactivo y de CLI para inspeccionar el equipo, ajustar niveles de esfuerzo y activar contingencias:
+
+```bash
+# Cockpit interactivo: visualiza el equipo [1..N], badges de esfuerzo y edita roles
+node tools/team.mjs
+
+# Listado rápido de la alineación y modelos
+node tools/team.mjs --list
+
+# Aplicar Golden Presets validados en producción (duo, solo-claude, solo-agy, solo-opencode, trio)
+node tools/team.mjs --preset duo
+node tools/team.mjs --preset solo-agy
+
+# 🚨 Hot-Swap de Emergencia: si un proveedor agota saldo o cae a mitad de sprint,
+# migra agentes externos al harness indicado y genera backup en roster.last-mixed.json
+node tools/team.mjs --emergency-to agy
+node tools/team.mjs --emergency-to claude
+
+# 🔄 Restaurar roster original previo a la emergencia
+node tools/team.mjs --restore
+```
 
 ---
 
