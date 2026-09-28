@@ -217,7 +217,7 @@ Con varios agentes en paralelo, cada diálogo de "¿apruebas este comando?" cong
 | Claude Code | `claude --permission-mode auto` |
 | Antigravity | `agy --dangerously-skip-permissions` |
 | OpenCode | `opencode --auto` |
-| Codex | `codex -c approval_policy=never` |
+| Codex | `codex --ask-for-approval never --sandbox workspace-write` (corto: `codex -a never -s workspace-write`) |
 
 Salvaguardas, configuración global y qué roles deben ir en modo autónomo: [`spec/AUTONOMY.md`](./spec/AUTONOMY.md).
 

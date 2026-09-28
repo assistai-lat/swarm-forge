@@ -1,6 +1,6 @@
 # 🐑 herdr — Adaptador para Enjambres Multi-Harness (Modo B)
 
-> **Estado:** ✅ Probado en vivo con herdr 0.9: `swarm-up.mjs --apply` (pestañas, `--worktree`, `--auto`) con AGY y Claude Code, y `ask.mjs` de punta a punta con OpenCode y AGY (en paralelo). Pendiente solo Codex, por no estar instalado.
+> **Estado:** ✅ Probado en vivo con herdr 0.9: `swarm-up.mjs --apply` (pestañas, `--worktree`, `--auto`) con AGY y Claude Code, y `ask.mjs` de punta a punta con OpenCode y AGY (en paralelo). Pendiente solo Codex bajo herdr: sus flags de modo autónomo y su sandbox están verificados por separado con Codex 0.157.1 (ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md)).
 >
 > Este adaptador es el **Modo B — Multi-Harness**: varios CLIs de agentes en un mismo enjambre. Si trabajas con un solo CLI no lo necesitas (Modo A), aunque ese CLI mezcle modelos de varias familias, como OpenCode. Comparativa en [`SWARM_MODES.md`](../../SWARM_MODES.md).
 
@@ -96,7 +96,7 @@ node providers/herdr/swarm-up.mjs --roster roster.json --phase 4 --auto --apply
 - Por defecto **no ejecuta nada**: imprime los comandos. `--apply` los ejecuta y exige `HERDR_ENV=1`.
 - Lanza por fases a propósito: los roles que no participan en la fase actual permanecen dormidos (Principio de Cero Desperdicio de Tokens).
 - `sentinel` y `orchestrator` no se lanzan por defecto: el Sentinel es normalmente el agente con el que ya hablas en tu pane. Usa `--roles orchestrator` si quieres uno separado.
-- `--auto` lanza cada CLI en **modo autónomo** con su flag (`--permission-mode auto`, `--dangerously-skip-permissions`, `--auto`, `approval_policy=never`), para que el enjambre no se congele en diálogos de aprobación. Úsalo siempre con `--worktree` en la fase 2. Ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).
+- `--auto` lanza cada CLI en **modo autónomo** con su flag (`--permission-mode auto`, `--dangerously-skip-permissions`, `--auto`, `--ask-for-approval never --sandbox workspace-write`), para que el enjambre no se congele en diálogos de aprobación. Úsalo siempre con `--worktree` en la fase 2. Ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).
 - Cada agente recibe un brief corto con su rol, Write-Lock y `verifyCommand`, y con lo que debe esperar según su tipo: los writers, su DISPATCH; los jueces, el pedido de revisión; los explorers, su encargo de la fase 0; el orchestrator no espera DISPATCH, porque lo redacta. Desactívalo con `--no-brief`.
 - **Polyrepo:** si la superficie declara `repo` ([`spec/TOPOLOGIES.md`](../../spec/TOPOLOGIES.md#superficies-en-repositorios-independientes-repo)), el agente se abre en ese repo y `--worktree` lo crea desde él. Lanza el script desde la raíz de la topología o pásale `--cwd <raíz>`. `--base origin/main` hace que cada worktree parta de esa rama en vez del `HEAD` actual; la `baseBranch` de una superficie gana sobre `--base`, y `copyEnv` copia sus `.env*` al worktree. (Probado en dry-run; falta una corrida con `--apply`.)
 - **`extraArgs` por agente:** lo que pongas en `extraArgs` de un agente de `roster.json` se pasa a su CLI después de `--model`. Sirve, por ejemplo, para aislar sus MCPs (`--strict-mcp-config --mcp-config=<archivo> --no-chrome` en Claude Code, `--agent <rol>` en OpenCode); ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md#6-mcps-por-rol).

@@ -1,6 +1,6 @@
 # 🤖 OpenAI Codex — Adaptador Swarm-Forge (Modo A)
 
-> **Estado:** ✅ Implementado. Basado en la documentación oficial de Codex CLI y en la línea de modelos de OpenAI vigente en septiembre de 2026. Los TOML fueron validados sintácticamente; falta una prueba end-to-end con Codex instalado.
+> **Estado:** ✅ Implementado. Verificado en vivo con Codex CLI 0.157.1 en Windows: flags de modo autónomo, sandbox `workspace-write`, carga de `.codex/config.toml` con `--strict-config` y desactivación de MCPs. Falta una corrida end-to-end del enjambre (subagentes y `codex exec` de victoria).
 
 Codex CLI ejecuta el enjambre con su mecánica nativa: **subagentes definidos en TOML** (`.codex/agents/*.toml`), cada uno con su propio modelo, su nivel de razonamiento y su sandbox. Además, `codex exec` permite algo que ningún otro CLI da tan limpio: una **auditoría de victoria en un proceso nuevo, efímero y con salida en JSON validada por esquema**.
 
@@ -14,6 +14,8 @@ Codex CLI ejecuta el enjambre con su mecánica nativa: **subagentes definidos en
 | `gpt-5.6-sol` | `orchestrator`, `security_auditor`, `code_reviewer` | `high` / `medium` | $4 / $20 |
 | `gpt-5.6-terra` | `worker_backend`, `worker_frontend`, `challenger` | `medium` / `high` | $2 / $12 |
 | `gpt-5.6-luna` | Sentinel (hilo principal), `explorer`, `devops` | `low` / `medium` | $0.20 / $1.20 |
+
+- Codex 0.157.1 también lista `gpt-6-sol` y `gpt-6-luna` (este último es su modelo por defecto). Están en [`catalog/models.json`](../../catalog/models.json) como `unverified`, con las capacidades de sus pares 5.6 hasta probarlos. La lista real está en `~/.codex/models_cache.json` (Codex no tiene un comando `models`).
 
 - Todos aceptan imágenes, así que el Sentinel y el `worker_frontend` cumplen el Imperativo Multimodal.
 - Todos tienen un contexto de ~1M tokens.
@@ -36,8 +38,22 @@ cp <ruta-a-swarm-forge>/topologies/<tu-topología>/topology.json ./topology.json
 echo ".codex/swarm/" >> .gitignore
 ```
 
-- Codex solo carga `.codex/config.toml` en proyectos **confiables**: acepta el diálogo de confianza la primera vez.
-- Para el enjambre, usa el **modo autónomo**: `codex -c approval_policy=never` (o `approval_policy = "never"` en `config.toml`). Elimina los diálogos pero mantiene el sandbox, así que los jueces `read-only` siguen sin poder escribir. Ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).
+- Codex solo carga `.codex/config.toml` en proyectos **confiables**, y la confianza es por raíz de repo git: un repo nuevo dentro de una carpeta confiable no la hereda. Acepta el diálogo de confianza la primera vez o regístralo en `~/.codex/config.toml`:
+  ```toml
+  [projects.'c:\ruta\a\tu-proyecto']
+  trust_level = "trusted"
+  ```
+  Si no se carga, Codex ignora en silencio el modelo, el sandbox y los `[agents]` del proyecto (verificado: arranca con tu modelo global y en `read-only`).
+- Para el enjambre, lanza Codex en **modo autónomo**, sin diálogos de permisos:
+  ```bash
+  codex --ask-for-approval never --sandbox workspace-write     # corto: codex -a never -s workspace-write
+  ```
+  O de forma global, en `~/.codex/config.toml`:
+  ```toml
+  approval_policy = "never"
+  sandbox_mode = "workspace-write"
+  ```
+  Elimina los diálogos pero mantiene el sandbox, así que los jueces `read-only` siguen sin poder escribir. No omitas `--sandbox`: en un repo no confiable el valor por defecto es `read-only` y, sin diálogos, el agente no puede escribir ni avisarte. `--dangerously-bypass-approvals-and-sandbox` quita también el sandbox: solo en entornos ya aislados. Ver [`spec/AUTONOMY.md`](../../spec/AUTONOMY.md).
 - Adapta los comandos de verificación en `AGENTS.md` y los Write-Locks en `topology.json`.
 
 ## Estructura
@@ -78,5 +94,7 @@ Para lanzar un subagente basta con pedirlo en lenguaje natural ("lanza el agente
 
 ## Por verificar
 
-- **Niveles de razonamiento:** las páginas oficiales no coinciden en el nivel más alto (`xhigh`, `max`, `ultra`). Las plantillas usan solo `low`, `medium` y `high`, que aparecen en todas.
-- **El modelo por defecto de Codex CLI** no figura en una página oficial; por eso las plantillas fijan el modelo de forma explícita.
+- **Subagentes TOML y victoria con `codex exec`:** falta la corrida del enjambre completo. Las claves de `.codex/config.toml` pasan `--strict-config` en 0.157.1 y la función `multi_agent` está activa por defecto.
+- **Diálogo de confianza en el Modo B:** cada worktree de herdr es un repo sin confianza registrada. Con `--sandbox` explícito el agente escribe igual, pero no está comprobado si la TUI muestra el diálogo de confianza al arrancar; si un agente de Codex queda detenido al lanzarlo, mira su pane con `herdr agent read <nombre>`.
+
+Resuelto con Codex 0.157.1: los niveles de razonamiento dependen del modelo (`gpt-6-astra`, `gpt-6-sol` y la familia 5.6 salvo Luna llegan hasta `ultra`; las Luna, hasta `max`), y el modelo por defecto es `gpt-6-luna`. Las plantillas siguen usando `low`, `medium` y `high` y fijando el modelo de forma explícita.

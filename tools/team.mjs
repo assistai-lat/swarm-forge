@@ -9,8 +9,9 @@
  *   node tools/team.mjs --list               # Solo listar la tabla y salir
  *   node tools/team.mjs --emergency-to agy   # Hot-swap de emergencia: pasa agentes externos a AGY
  *   node tools/team.mjs --emergency-to claude# Hot-swap de emergencia: pasa agentes externos a Claude
+ *   node tools/team.mjs --emergency-to codex # Hot-swap de emergencia: pasa agentes externos a Codex
  *   node tools/team.mjs --restore            # Restaura el roster previo a la emergencia
- *   node tools/team.mjs --preset <nombre>    # Aplica Golden Preset (duo, solo-claude, solo-agy, solo-opencode, etc.)
+ *   node tools/team.mjs --preset <nombre>    # Aplica Golden Preset (duo, solo-claude, solo-agy, solo-opencode, solo-codex, etc.)
  *   node tools/team.mjs --roster <path>      # Ruta específica al archivo roster.json
  */
 
@@ -33,6 +34,50 @@ const GRAY = '\x1b[90m';
 
 const BACKUP_FILE = 'roster.last-mixed.json';
 const SWARM_FORGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Codex: el modo autónomo necesita también el sandbox explícito (en un worktree no confiable
+// Codex arranca en read-only), y el nivel de razonamiento va aparte del modelo, en extraArgs.
+const CODEX_AUTO_APPROVE = ['--ask-for-approval', 'never', '--sandbox', 'workspace-write'];
+
+const CODEX_MODELS = {
+  top: 'gpt-6-astra',
+  high: 'gpt-5.6-sol',
+  medium: 'gpt-5.6-terra',
+  low: 'gpt-5.6-luna'
+};
+
+function codexRole(model, effort) {
+  return {
+    harness: 'codex',
+    model,
+    family: 'openai',
+    autoApproveArgs: [...CODEX_AUTO_APPROVE],
+    extraArgs: ['-c', `model_reasoning_effort=${effort}`]
+  };
+}
+
+// Mismo reparto que providers/codex/README.md.
+function codexTierFor(agent) {
+  const role = agent.role || '';
+  if (role === 'sentinel' || agent.kind === 'utility' || role.includes('explorer')) return [CODEX_MODELS.low, 'low'];
+  if (role.includes('forensic') || role.includes('victory')) return [CODEX_MODELS.top, 'high'];
+  if (agent.kind === 'coord' || role.includes('security')) return [CODEX_MODELS.high, 'high'];
+  if (agent.kind === 'judge') return [CODEX_MODELS.high, 'medium'];
+  return [CODEX_MODELS.medium, 'medium'];
+}
+
+// Los extraArgs son flags nativos de un CLI: no sobreviven a un cambio de harness.
+function switchHarness(agent, harness) {
+  if (agent.harness !== harness) delete agent.extraArgs;
+  agent.harness = harness;
+  agent.herdrKind = harness;
+}
+
+function setCodex(agent, model, effort) {
+  switchHarness(agent, 'codex');
+  Object.assign(agent, codexRole(model, effort));
+  agent.modelId = `codex/${model}`;
+}
 
 /**
  * CATÁLOGO DE GOLDEN PRESETS
@@ -157,6 +202,25 @@ export const GOLDEN_PRESETS = {
       'forensic-auditor': { harness: 'opencode', model: 'opencode-go/kimi-k2.7-code', family: 'moonshot', autoApproveArgs: ['--auto'] },
       'victory-auditor': { harness: 'opencode', model: 'opencode-go/glm-5.3', family: 'zhipu', autoApproveArgs: ['--auto'] }
     }
+  },
+  'codex': {
+    name: 'codex',
+    title: 'Solo Codex: GPT-6 Astra (vetos) + GPT-5.6 Sol (jueces) + Terra (workers) + Luna (Sentinel)',
+    description: 'Todo en Codex CLI con sandbox workspace-write. Mono-familia: la 6ª Ley no se cumple, igual que en solo-claude o solo-agy.',
+    roles: {
+      sentinel: codexRole(CODEX_MODELS.low, 'low'),
+      orchestrator: codexRole(CODEX_MODELS.high, 'high'),
+      explorer: codexRole(CODEX_MODELS.low, 'low'),
+      worker_backend: codexRole(CODEX_MODELS.medium, 'medium'),
+      worker_frontend: codexRole(CODEX_MODELS.medium, 'medium'),
+      'code-reviewer': codexRole(CODEX_MODELS.high, 'medium'),
+      'security-auditor': codexRole(CODEX_MODELS.high, 'high'),
+      'contract-integrator': codexRole(CODEX_MODELS.high, 'medium'),
+      challenger_routing: codexRole(CODEX_MODELS.medium, 'high'),
+      challenger_realtime: codexRole(CODEX_MODELS.medium, 'high'),
+      'forensic-auditor': codexRole(CODEX_MODELS.top, 'high'),
+      'victory-auditor': codexRole(CODEX_MODELS.top, 'high')
+    }
   }
 };
 
@@ -168,6 +232,7 @@ export function normalizePresetName(inputStr) {
   if (s === '4' || s === 'opencode' || s === 'solo-opencode' || s === 'open-weights') return 'opencode';
   if (s === '5' || s === 'agy,opencode' || s === 'opencode,agy' || s === 'mixto' || s === 'mixed') return 'agy,opencode';
   if (s === '6' || s === 'claude,agy,opencode' || s === 'trio' || s === 'all') return 'claude,agy,opencode';
+  if (s === '7' || s === 'codex' || s === 'solo-codex' || s === 'openai') return 'codex';
   return s;
 }
 
@@ -190,7 +255,7 @@ function parseArgs() {
 Uso:
   node tools/team.mjs                      Modo interactivo (menú por números)
   node tools/team.mjs --list               Imprime la tabla de equipo y sale
-  node tools/team.mjs --emergency-to <harness> Hot-swap de emergencia: migra agentes al harness destino (agy, claude, opencode)
+  node tools/team.mjs --emergency-to <harness> Hot-swap de emergencia: migra agentes al harness destino (agy, claude, opencode, codex)
   node tools/team.mjs --restore            Restaura la configuración previa a la emergencia
   node tools/team.mjs --preset <preset>    Aplica Golden Preset recomendado:
                                            - 'duo' / 'claude,agy'      (Claude Opus + Sonnet F3 + AGY)
@@ -199,6 +264,7 @@ Uso:
                                            - 'solo-opencode' / 'open-weights' (Kimi 2.7, Qwen 3.6, GLM 5.3, DeepSeek Pro)
                                            - 'mixed'                   (AGY + OpenCode)
                                            - 'trio'                    (Claude + AGY + OpenCode)
+                                           - 'solo-codex' / 'openai'   (GPT-6 Astra, GPT-5.6 Sol / Terra / Luna)
   node tools/team.mjs --roster <path>      Ruta específica a roster.json
 `);
       process.exit(0);
@@ -227,6 +293,14 @@ export function saveRoster(fullPath, data) {
 }
 
 export function inferEffort(agent) {
+  // En Codex el esfuerzo no está en el nombre del modelo sino en model_reasoning_effort.
+  const codexEffort = (agent.extraArgs || []).join(' ').match(/model_reasoning_effort=(\w+)/)?.[1];
+  if (codexEffort) {
+    if (['high', 'xhigh', 'max', 'ultra'].includes(codexEffort)) return 'High';
+    if (codexEffort === 'medium') return 'Medium';
+    return 'Low';
+  }
+
   const model = (agent.model || '').toLowerCase();
 
   if (model.includes('-high') || model.includes('opus') || model.includes('r1') || model.includes('deepseek-v4-pro')) {
@@ -262,6 +336,8 @@ function formatHarnessBadge(harness) {
       return `${MAGENTA}opencode${RESET}`;
     case 'claude':
       return `${YELLOW}claude  ${RESET}`;
+    case 'codex':
+      return `${GREEN}codex   ${RESET}`;
     default:
       return `${GRAY}${harness.padEnd(8)}${RESET}`;
   }
@@ -301,8 +377,7 @@ export function applyEmergencyTo(rosterData, fullPath, targetHarness) {
   for (const agent of rosterData.agents) {
     if (target === 'agy') {
       if (agent.harness !== 'agy') {
-        agent.harness = 'agy';
-        agent.herdrKind = 'agy';
+        switchHarness(agent, 'agy');
         agent.autoApproveArgs = ['--dangerously-skip-permissions'];
         agent.family = 'google';
 
@@ -324,8 +399,7 @@ export function applyEmergencyTo(rosterData, fullPath, targetHarness) {
       }
     } else if (target === 'claude') {
       if (agent.harness !== 'claude') {
-        agent.harness = 'claude';
-        agent.herdrKind = 'claude';
+        switchHarness(agent, 'claude');
         agent.autoApproveArgs = ['--permission-mode', 'auto'];
         agent.family = 'anthropic';
 
@@ -339,8 +413,7 @@ export function applyEmergencyTo(rosterData, fullPath, targetHarness) {
       }
     } else if (target === 'opencode') {
       if (agent.harness !== 'opencode') {
-        agent.harness = 'opencode';
-        agent.herdrKind = 'opencode';
+        switchHarness(agent, 'opencode');
         agent.autoApproveArgs = ['--auto'];
 
         if (agent.role === 'sentinel') {
@@ -366,8 +439,13 @@ export function applyEmergencyTo(rosterData, fullPath, targetHarness) {
         agent.modelId = `opencode/${agent.model.replace('opencode-go/', '')}`;
         changed++;
       }
+    } else if (target === 'codex') {
+      if (agent.harness !== 'codex') {
+        setCodex(agent, ...codexTierFor(agent));
+        changed++;
+      }
     } else {
-      throw new Error(`Harness de emergencia no soportado: '${targetHarness}'. Opciones válidas: agy, claude, opencode.`);
+      throw new Error(`Harness de emergencia no soportado: '${targetHarness}'. Opciones válidas: agy, claude, opencode, codex.`);
     }
   }
 
@@ -419,12 +497,12 @@ export function applyGoldenPreset(presetKey, fullPath, rosterData) {
       }
 
       if (roleCfg) {
-        agent.harness = roleCfg.harness;
-        agent.herdrKind = roleCfg.harness;
+        switchHarness(agent, roleCfg.harness);
         agent.model = roleCfg.model;
         agent.modelId = `${roleCfg.harness}/${roleCfg.model.replace('opencode-go/', '')}`;
         agent.family = roleCfg.family;
         agent.autoApproveArgs = [...roleCfg.autoApproveArgs];
+        if (roleCfg.extraArgs) agent.extraArgs = [...roleCfg.extraArgs];
       }
     }
 
@@ -471,7 +549,7 @@ async function editAgentInteractive(rl, agent, agentNum, fullPath, rosterData) {
   console.log(`\n${GREEN}${BOLD}--> Editando ${agentNum} ${agent.role} (Actual: ${agent.harness} | ${agent.model} | ${inferEffort(agent)})${RESET}`);
   console.log(`¿Qué deseas modificar?`);
   console.log(`  ${BOLD}[1]${RESET} Nivel de Esfuerzo / Thinking`);
-  console.log(`  ${BOLD}[2]${RESET} Conmutar Proveedor / Harness (AGY vs OpenCode vs Claude)`);
+  console.log(`  ${BOLD}[2]${RESET} Conmutar Proveedor / Harness (AGY vs OpenCode vs Claude vs Codex)`);
   console.log(`  ${BOLD}[3]${RESET} Escribir Modelo a mano`);
   console.log(`  ${BOLD}[0]${RESET} Volver atrás`);
 
@@ -479,9 +557,9 @@ async function editAgentInteractive(rl, agent, agentNum, fullPath, rosterData) {
 
   if (opt === '1') {
     console.log(`\nNiveles de esfuerzo disponibles:`);
-    console.log(`  ${BOLD}[1] High${RESET}     (Opus / gemini-3.1-pro-high / deepseek-v4-pro)`);
-    console.log(`  ${BOLD}[2] Medium${RESET}   (Sonnet / kimi-k2.7-code / qwen3.6-plus / gemini-3.8-flash-medium)`);
-    console.log(`  ${BOLD}[3] Low${RESET}      (deepseek-v4.1-flash / gemini-3.8-flash-low / nemotron free)`);
+    console.log(`  ${BOLD}[1] High${RESET}     (Opus / gemini-3.1-pro-high / deepseek-v4-pro / gpt-5.6-sol high)`);
+    console.log(`  ${BOLD}[2] Medium${RESET}   (Sonnet / kimi-k2.7-code / qwen3.6-plus / gemini-3.8-flash-medium / gpt-5.6-terra medium)`);
+    console.log(`  ${BOLD}[3] Low${RESET}      (deepseek-v4.1-flash / gemini-3.8-flash-low / nemotron free / gpt-5.6-luna low)`);
 
     const effOpt = (await rl.question(`${BOLD}Selecciona esfuerzo [1-3]: ${RESET}`)).trim();
 
@@ -504,6 +582,15 @@ async function editAgentInteractive(rl, agent, agentNum, fullPath, rosterData) {
       else if (effOpt === '2') agent.model = OPENCODE_MODELS.medium_coder;
       else agent.model = OPENCODE_MODELS.low;
       agent.modelId = `opencode/${agent.model.replace('opencode-go/', '')}`;
+    } else if (agent.harness === 'codex') {
+      if (effOpt === '1') {
+        const isVeto = agent.role.includes('forensic') || agent.role.includes('victory');
+        setCodex(agent, isVeto ? CODEX_MODELS.top : CODEX_MODELS.high, 'high');
+      } else if (effOpt === '2') {
+        setCodex(agent, CODEX_MODELS.medium, 'medium');
+      } else if (effOpt === '3') {
+        setCodex(agent, CODEX_MODELS.low, 'low');
+      }
     }
 
     saveRoster(fullPath, rosterData);
@@ -514,31 +601,31 @@ async function editAgentInteractive(rl, agent, agentNum, fullPath, rosterData) {
     console.log(`  ${BOLD}[1] claude${RESET}   (Opus en Workers/Sentinel, Sonnet en jueces)`);
     console.log(`  ${BOLD}[2] agy${RESET}      (Gemini 3.1 Pro / 3.8 Flash High - Cero OpenCode)`);
     console.log(`  ${BOLD}[3] opencode${RESET} (Kimi 2.7, Qwen 3.6, GLM 5.3, DeepSeek Pro - Cero Grok)`);
+    console.log(`  ${BOLD}[4] codex${RESET}    (GPT-6 Astra en vetos, GPT-5.6 Sol / Terra / Luna según el rol)`);
 
-    const provOpt = (await rl.question(`${BOLD}Selecciona proveedor [1-3]: ${RESET}`)).trim();
+    const provOpt = (await rl.question(`${BOLD}Selecciona proveedor [1-4]: ${RESET}`)).trim();
 
     if (provOpt === '1') {
-      agent.harness = 'claude';
-      agent.herdrKind = 'claude';
+      switchHarness(agent, 'claude');
       agent.autoApproveArgs = ['--permission-mode', 'auto'];
       agent.family = 'anthropic';
       agent.model = (agent.kind === 'writer' || agent.role === 'sentinel') ? 'opus' : 'sonnet';
       agent.modelId = `claude/${agent.model}`;
     } else if (provOpt === '2') {
-      agent.harness = 'agy';
-      agent.herdrKind = 'agy';
+      switchHarness(agent, 'agy');
       agent.autoApproveArgs = ['--dangerously-skip-permissions'];
       agent.family = 'google';
       const isJudgeOrCoord = agent.kind === 'coord' || agent.kind === 'judge';
       agent.model = isJudgeOrCoord ? AGY_MODELS.high_pro : AGY_MODELS.high_flash;
       agent.modelId = `agy/${agent.model}`;
     } else if (provOpt === '3') {
-      agent.harness = 'opencode';
-      agent.herdrKind = 'opencode';
+      switchHarness(agent, 'opencode');
       agent.autoApproveArgs = ['--auto'];
       agent.family = agent.role.includes('backend') ? 'moonshot' : (agent.role.includes('frontend') ? 'qwen' : 'zhipu');
       agent.model = agent.role.includes('backend') ? OPENCODE_MODELS.medium_coder : OPENCODE_MODELS.medium_ui;
       agent.modelId = `opencode/${agent.model.replace('opencode-go/', '')}`;
+    } else if (provOpt === '4') {
+      setCodex(agent, ...codexTierFor(agent));
     }
 
     saveRoster(fullPath, rosterData);
@@ -623,7 +710,7 @@ async function main() {
       }
 
       if (ans === 'e') {
-        const dest = (await rl.question(`${YELLOW}Harness destino de emergencia [agy/claude/opencode, default agy]: ${RESET}`)).trim().toLowerCase() || 'agy';
+        const dest = (await rl.question(`${YELLOW}Harness destino de emergencia [agy/claude/opencode/codex, default agy]: ${RESET}`)).trim().toLowerCase() || 'agy';
         const confirm = (await rl.question(`${YELLOW}¿Seguro que deseas migrar agentes externos a '${dest}'? [s/N]: ${RESET}`)).trim().toLowerCase();
         if (confirm === 's' || confirm === 'si' || confirm === 'y') {
           try {
@@ -655,8 +742,9 @@ async function main() {
         console.log(`  ${BOLD}[4] solo-opencode${RESET}         (Solo OpenCode: Kimi 2.7, Qwen 3.6, GLM 5.3, DeepSeek Pro. Cero Grok)`);
         console.log(`  ${BOLD}[5] mixed / agy,opencode${RESET}  (Mixto: Gemini + Kimi 2.7 / Qwen 3.6 / GLM / DeepSeek)`);
         console.log(`  ${BOLD}[6] trio${RESET}                  (Trío Soberano: Opus Backend, Qwen Frontend, Sonnet F3, Gemini Pro)`);
+        console.log(`  ${BOLD}[7] solo-codex${RESET}            (Solo Codex: GPT-6 Astra en vetos, GPT-5.6 Sol / Terra / Luna)`);
 
-        const pOpt = (await rl.question(`\nSelecciona preset [1-6]: `)).trim();
+        const pOpt = (await rl.question(`\nSelecciona preset [1-7]: `)).trim();
         const res = applyGoldenPreset(pOpt, fullPath, rosterData);
         if (res) {
           rosterData = res.data;

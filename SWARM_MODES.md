@@ -39,7 +39,7 @@ Swarm-Forge ofrece **dos formas de ejecutar el mismo protocolo** (las 5 fases, l
 
 > Puedes empezar en el Modo A y pasar al B más adelante: los artefactos (`PROJECT.md`, `DISPATCH.md`, `handoff.md`, `GATE_STATUS.md`) son los mismos.
 
-> **En ambos modos, los agentes corren en modo autónomo** (sin diálogos de aprobación por comando): `claude --permission-mode auto`, `agy --dangerously-skip-permissions`, `opencode --auto`, `codex -c approval_policy=never`. La aprobación humana queda reservada al Gate M0. Ver [`spec/AUTONOMY.md`](./spec/AUTONOMY.md).
+> **En ambos modos, los agentes corren en modo autónomo** (sin diálogos de aprobación por comando): `claude --permission-mode auto`, `agy --dangerously-skip-permissions`, `opencode --auto`, `codex --ask-for-approval never --sandbox workspace-write`. La aprobación humana queda reservada al Gate M0. Ver [`spec/AUTONOMY.md`](./spec/AUTONOMY.md).
 
 ---
 

@@ -178,3 +178,56 @@ test('applyEmergencyTo y restoreBackup: migra agentes de emergencia y restaura b
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('inferEffort: en Codex lee model_reasoning_effort de extraArgs', () => {
+  assert.equal(inferEffort({ model: 'gpt-5.6-sol', extraArgs: ['-c', 'model_reasoning_effort=high'] }), 'High');
+  assert.equal(inferEffort({ model: 'gpt-6-astra', extraArgs: ['-c', 'model_reasoning_effort=xhigh'] }), 'High');
+  assert.equal(inferEffort({ model: 'gpt-5.6-terra', extraArgs: ['-c', 'model_reasoning_effort=medium'] }), 'Medium');
+  assert.equal(inferEffort({ model: 'gpt-5.6-luna', extraArgs: ['-c', 'model_reasoning_effort=low'] }), 'Low');
+});
+
+test('applyEmergencyTo codex: modo autónomo con sandbox, razonamiento por rol y vuelta sin arrastrar extraArgs', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'sf-team-codex-'));
+  try {
+    const rosterFile = join(dir, 'roster.json');
+    const roster = createSampleRoster();
+    writeFileSync(rosterFile, JSON.stringify(roster, null, 2), 'utf8');
+
+    assert.ok(applyEmergencyTo(roster, rosterFile, 'codex') > 0);
+    const migrated = JSON.parse(readFileSync(rosterFile, 'utf8'));
+    assert.deepEqual(migrated.harnesses, ['codex']);
+    for (const a of migrated.agents) {
+      assert.equal(a.herdrKind, 'codex');
+      assert.equal(a.family, 'openai');
+      assert.deepEqual(a.autoApproveArgs, ['--ask-for-approval', 'never', '--sandbox', 'workspace-write']);
+      assert.equal(a.modelId, `codex/${a.model}`);
+    }
+    const sentinel = migrated.agents.find(a => a.role === 'sentinel');
+    assert.equal(sentinel.model, 'gpt-5.6-luna');
+    assert.deepEqual(sentinel.extraArgs, ['-c', 'model_reasoning_effort=low']);
+    const wb = migrated.agents.find(a => a.role === 'worker_backend');
+    assert.equal(wb.model, 'gpt-5.6-terra');
+    assert.deepEqual(wb.writeLock, ['src/api/**']);
+
+    // Los flags -c de Codex romperían otro CLI: al salir de Codex se descartan.
+    applyEmergencyTo(migrated, rosterFile, 'claude');
+    const back = JSON.parse(readFileSync(rosterFile, 'utf8'));
+    assert.ok(back.agents.every(a => a.harness === 'claude' && a.extraArgs === undefined));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('applyGoldenPreset solo-codex: copia extraArgs del preset', () => {
+  assert.equal(normalizePresetName('solo-codex'), 'codex');
+  assert.equal(normalizePresetName('7'), 'codex');
+  const roster = createSampleRoster();
+  const result = applyGoldenPreset('solo-codex', null, roster);
+  assert.ok(result);
+  assert.ok(result.data.agents.every(a => a.harness === 'codex' && a.extraArgs?.[0] === '-c'));
+  const forensic = GOLDEN_PRESETS.codex.roles['forensic-auditor'];
+  assert.equal(forensic.model, 'gpt-6-astra');
+  // El preset no comparte arrays con el roster.
+  result.data.agents[0].extraArgs.push('x');
+  assert.equal(GOLDEN_PRESETS.codex.roles.sentinel.extraArgs.length, 2);
+});

@@ -9,6 +9,8 @@ model_reasoning_effort = "low"
 # Los workers necesitan escribir en el workspace; los jueces se restringen a
 # read-only en su propio archivo de .codex/agents/.
 sandbox_mode = "workspace-write"
+# on-request: el Sentinel te consulta. Para el enjambre sin diálogos lanza
+# `codex --ask-for-approval never --sandbox workspace-write` (ver spec/AUTONOMY.md).
 approval_policy = "on-request"
 
 [agents]

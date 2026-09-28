@@ -23,15 +23,15 @@ En una sesión normal, cada CLI pide aprobación antes de ejecutar comandos, edi
 | **Claude Code** | `claude --permission-mode auto` | `claude --dangerously-skip-permissions` | `"permissions": { "defaultMode": "auto" }` en `~/.claude/settings.json` |
 | **Antigravity (AGY)** | `agy --dangerously-skip-permissions` | (el mismo) | — |
 | **OpenCode** | `opencode --auto` | `"permission": { "*": "allow" }` en la config | `"permission"` en `~/.config/opencode/opencode.json` |
-| **Codex CLI** | `codex -c approval_policy=never -c sandbox_mode=workspace-write` | `-c sandbox_mode=danger-full-access` | `approval_policy = "never"` en `~/.codex/config.toml` |
+| **Codex CLI** | `codex --ask-for-approval never --sandbox workspace-write` (corto: `-a never -s workspace-write`) | `codex --dangerously-bypass-approvals-and-sandbox` | `approval_policy = "never"` y `sandbox_mode = "workspace-write"` en `~/.codex/config.toml` |
 
 Detalles:
 - **Claude Code:** `--permission-mode` acepta `acceptEdits`, `auto`, `bypassPermissions`, `manual`, `dontAsk` y `plan`. `auto` es el equilibrio para enjambres; `bypassPermissions` (o `--dangerously-skip-permissions`) desactiva todos los controles.
 - **AGY:** `--dangerously-skip-permissions` auto-aprueba todas las solicitudes de herramientas.
 - **OpenCode:** `--auto` auto-aprueba todo lo que **no esté explícitamente negado**. Los Write-Locks de [`providers/opencode/`](../providers/opencode/) (`edit: "*": deny`) y los `deny` de los jueces se siguen respetando: es el modo autónomo más seguro de los cuatro.
-- **Codex:** `approval_policy = "never"` elimina los diálogos pero **mantiene el sandbox** (`workspace-write` solo escribe dentro del proyecto). Los jueces con `sandbox_mode = "read-only"` siguen sin poder escribir.
+- **Codex:** `--ask-for-approval never` elimina los diálogos pero **mantiene el sandbox**: `workspace-write` escribe en el proyecto (y en `/tmp`/`$TMPDIR`) y nada más. Los jueces con `sandbox_mode = "read-only"` siguen sin poder escribir. **Pasa siempre `--sandbox` explícito:** en un repo que Codex no marcó como confiable (un clon nuevo o un worktree de herdr) el sandbox por defecto es `read-only`, y con `never` el agente no pide permiso: sus escrituras fallan en silencio. `--approve-for-me` es una alternativa intermedia: en vez de preguntarte, un revisor automático aprueba o rechaza cada pedido.
 
-Flags verificados con `--help` en Claude Code, AGY 1.2.7 y OpenCode 1.18; las claves de Codex, en su [referencia de configuración](https://learn.chatgpt.com/docs/config-file/config-reference).
+Flags verificados con `--help` en Claude Code, AGY 1.2.7, OpenCode 1.18 y Codex 0.157.1. En Codex, además, en vivo en Windows (sandbox `unelevated`): con `-s workspace-write` escribe en el proyecto sin preguntar y recibe "Acceso denegado" fuera de él; sin `-s`, en un repo no confiable arranca en `read-only`.
 
 ---
 
@@ -96,7 +96,7 @@ Un agente autónomo usa sus herramientas MCP **sin preguntar**, igual que edita 
 | **Claude Code** | `--strict-mcp-config --mcp-config=<mcp-rol>.json --no-chrome`. Con `{"mcpServers": {}}` el agente queda con cero MCPs. `--no-chrome` es imprescindible si está instalada la extensión Claude in Chrome: sus herramientas (`mcp__claude-in-chrome__*`: navegar, ejecutar JavaScript, subir archivos) no vienen de ningún archivo de configuración MCP y `--strict-mcp-config` no las quita. Verificado en vivo en herdr: 21 herramientas de Chrome con los dos primeros flags, 0 al añadir `--no-chrome`. Usa la forma con `=`: `--mcp-config` acepta varios archivos y, separado por espacio, se traga el siguiente argumento que no sea un flag. | Por sesión. |
 | **AGY** | `agy mcp disable <nombre>` antes de lanzar el enjambre y `agy mcp enable <nombre>` al terminar. No hay flag por sesión: la config es **solo global** (`~/.gemini/config/mcp_config.json`) y el cambio afecta también a tu sesión de AGY. | Global. |
 | **OpenCode** | En la definición del agente del rol, `"tools": { "<servidor>_*": false }`, y lánzalo con `--agent <rol>`. O desactiva el servidor en el `opencode.json` del proyecto con `"enabled": false`. Según la documentación de OpenCode; no verificado en vivo. | Por agente / por proyecto. |
-| **Codex** | `-c mcp_servers.<nombre>.enabled=false`. Según su referencia de configuración; no verificado en vivo (Codex no estaba instalado). | Por sesión. |
+| **Codex** | `-c mcp_servers.<nombre>.enabled=false`. Verificado con `codex mcp list` en Codex 0.157.1: el servidor pasa de `enabled` a `disabled`. | Por sesión. |
 
 En el Modo B, los argumentos de Claude Code, OpenCode y Codex van en **`extraArgs` del agente en `roster.json`**: [`swarm-up.mjs`](../providers/herdr/swarm-up.mjs) los pasa al CLI después de `--model`. Si el modelo ya traía `extraArgs` del catálogo (p. ej. el nivel de razonamiento de Codex), consérvalos y añade los tuyos:
 
