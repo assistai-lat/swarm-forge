@@ -1,5 +1,5 @@
 {
-  "$comment": "Catálogo de capacidades por modelo. Las puntuaciones (1-5) son relativas y editables. 'confidence' indica cuán verificado está cada perfil: 'verified' (probado por el mantenedor), 'assumed' (inferido de la documentación del proveedor), 'unverified' (solo el nombre fue descubierto con `agy models` / `opencode models` / `~/.codex/models_cache.json`). El recomendador penaliza lo no verificado y lo reporta. 'extraArgs' son argumentos nativos adicionales del CLI (p. ej. el nivel de razonamiento de Codex). 'autoApproveArgs' es el flag de modo autónomo de cada CLI (ver spec/AUTONOMY.md); swarm-up.mjs lo añade con --auto.",
+  "$comment": "Catálogo de capacidades por modelo. Las puntuaciones (1-5) son relativas y editables. 'confidence' indica cuán verificado está cada perfil: 'verified' (probado por el mantenedor), 'assumed' (inferido de la documentación del proveedor), 'unverified' (solo el nombre fue descubierto con `agy models` / `opencode models` / `~/.codex/models_cache.json`). El recomendador penaliza lo no verificado y lo reporta. 'extraArgs' son argumentos nativos adicionales del CLI (p. ej. el nivel de razonamiento de Codex). 'autoApproveArgs' es el flag de modo autónomo de cada CLI (ver spec/AUTONOMY.md); swarm-up.mjs lo añade con --auto. 'retired' lista familias que el proveedor apaga: swarm-up.mjs no lanza un agente cuyo modelo case con un 'pattern', y tools/check-models.mjs revisa rosters enteros.",
   "version": "1.0.0",
   "harnesses": {
     "claude": {
@@ -44,6 +44,14 @@
       "discover": null
     }
   },
+  "retired": [
+    {
+      "pattern": "gemini-3\\.[67]-flash",
+      "replaceWith": "gemini-3.8-flash",
+      "since": "2026-10-05",
+      "reason": "Google apaga Gemini 3.6 Flash y 3.7 Flash (aviso del CLI); `agy models` aún los lista."
+    }
+  ],
   "models": [
     {
       "id": "claude/opus",

@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { retiredRule } from "./check-models.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -171,6 +172,7 @@ export function recommend({ topology, modelCatalog, roleCatalog, harnesses, prof
     harnesses.includes(m.harness) &&
     !excludedModels.has(m.id) &&
     !excludedFamilies.has(m.family) &&
+    !retiredRule(m.model, modelCatalog) &&
     (maxCost === undefined || m.cost <= maxCost));
   const warnings = [];
   if (models.length === 0) {

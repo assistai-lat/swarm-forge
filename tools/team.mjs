@@ -21,6 +21,7 @@ import { execSync } from 'node:child_process';
 import * as readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { loadCatalog, retiredRule } from './check-models.mjs';
 
 // Colores ANSI
 const RESET = '\x1b[0m';
@@ -633,7 +634,11 @@ async function editAgentInteractive(rl, agent, agentNum, fullPath, rosterData) {
 
   } else if (opt === '3') {
     const customModel = (await rl.question(`${BOLD}Escribe el identificador del modelo (ej: opus, kimi-k2.7-code, gemini-3.1-pro-high): ${RESET}`)).trim();
-    if (customModel) {
+    const retired = customModel ? retiredRule(customModel, loadCatalog()) : null;
+    if (retired) {
+      const fix = retired.suggestion ? ` Usa ${retired.suggestion}.` : '';
+      console.log(`\n${RED}✗ ${customModel} está retirado (catalog/models.json → retired).${fix}${RESET}`);
+    } else if (customModel) {
       agent.model = customModel;
       agent.modelId = `${agent.harness}/${customModel}`;
       saveRoster(fullPath, rosterData);

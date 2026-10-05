@@ -15,6 +15,7 @@
 import { copyFileSync, existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
+import { describeRetired, loadCatalog, retiredAgents } from "../../tools/check-models.mjs";
 
 function parseArgs(argv) {
   const args = { apply: false, worktree: false, brief: true, auto: false };
@@ -235,6 +236,14 @@ function main() {
   const agents = selectAgents(roster, args);
   if (agents.length === 0) {
     console.error("Ningún agente del roster coincide con el filtro.");
+    process.exit(1);
+  }
+
+  // Se comprueba también en dry-run y antes de crear nada: un enjambre a medio lanzar es peor.
+  const retired = retiredAgents(agents, loadCatalog());
+  if (retired.length) {
+    console.error("Modelos retirados (catalog/models.json → retired). No se lanza nada; corrige el roster:");
+    for (const entry of retired) console.error(`  ✗ ${describeRetired(entry)}`);
     process.exit(1);
   }
 
